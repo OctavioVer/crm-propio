@@ -17,7 +17,7 @@ import { logout } from '@/lib/auth'
 import { useRouter } from 'next/navigation'
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
+  { name: 'Dashboard', href: '/dashboard/overview', icon: LayoutDashboard },
   { name: 'Contactos', href: '/dashboard/contacts', icon: Users },
   { name: 'Deals', href: '/dashboard/deals', icon: Briefcase },
   { name: 'Conversaciones', href: '/dashboard/conversations', icon: MessageSquare },

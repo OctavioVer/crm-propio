@@ -23,7 +23,7 @@ export default fp(async (fastify) => {
       slug = request.headers['x-tenant-slug'] as string | undefined
     }
 
-    if (!slug && request.user?.tenantId) {
+    if (!slug && request.authUser?.tenantId) {
       // Already resolved via JWT
       return
     }

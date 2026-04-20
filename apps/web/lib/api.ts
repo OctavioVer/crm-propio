@@ -62,3 +62,8 @@ export class ApiError extends Error {
 }
 
 export const api = new ApiClient(API_URL)
+
+if (typeof window !== 'undefined') {
+  const stored = localStorage.getItem('crm_access')
+  if (stored) api.setToken(stored)
+}

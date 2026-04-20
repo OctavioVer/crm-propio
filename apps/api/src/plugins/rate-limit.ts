@@ -8,7 +8,7 @@ export default fp(async (fastify) => {
     timeWindow: '1 minute',
     redis,
     keyGenerator: (req) => {
-      return req.user?.id ?? req.ip
+      return req.authUser?.id ?? req.ip
     },
     errorResponseBuilder: () => ({
       statusCode: 429,

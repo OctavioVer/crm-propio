@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { ContactService } from '../services/contact.service'
+import { AiService } from '../services/ai.service'
 
 const createSchema = z.object({
   type: z.enum(['PERSON', 'COMPANY']).optional(),
@@ -25,6 +26,7 @@ const listSchema = z.object({
 
 export const contactRoutes: FastifyPluginAsync = async (fastify) => {
   const service = new ContactService()
+  const ai = new AiService()
 
   fastify.addHook('preHandler', fastify.authenticate)
 
@@ -63,6 +65,39 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       await service.delete(request.authUser.tenantId, id)
       return reply.status(204).send()
+    } catch {
+      return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Contacto no encontrado' })
+    }
+  })
+
+  fastify.post('/:id/score', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    try {
+      const result = await service.recalculateScore(request.authUser.tenantId, id)
+      return reply.send(result)
+    } catch {
+      return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Contacto no encontrado' })
+    }
+  })
+
+  fastify.post('/:id/summary', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    if (!process.env.ANTHROPIC_API_KEY) {
+      return reply.status(503).send({ statusCode: 503, error: 'Unavailable', message: 'API key de AI no configurada' })
+    }
+    try {
+      const summary = await ai.summarizeContact(request.authUser.tenantId, id)
+      return reply.send({ summary })
+    } catch (err: any) {
+      return reply.status(500).send({ statusCode: 500, error: 'Error', message: err.message })
+    }
+  })
+
+  fastify.get('/:id/nba', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    try {
+      const nba = await ai.suggestNextAction(request.authUser.tenantId, id)
+      return reply.send(nba)
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Contacto no encontrado' })
     }

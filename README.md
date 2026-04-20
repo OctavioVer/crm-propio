@@ -77,41 +77,68 @@ npm run dev
 - [x] JWT con roles (SUPER_ADMIN, ADMIN, MANAGER, SELLER, VIEWER)
 - [x] CRUD completo: Contactos, Deals, Pipelines, Usuarios
 - [x] Kanban endpoint: `/api/deals/kanban/:pipelineId`
-- [x] Rate limiting con Redis
-- [x] CORS configurado
+- [x] Activities: `GET /api/activities/contact/:id`, `GET /api/activities/deal/:id`, `POST`, `PATCH`, `DELETE`
+- [x] Lead scoring por reglas: `POST /api/contacts/:id/score`
+- [x] AI resumen de contacto: `POST /api/contacts/:id/summary` (Claude Haiku)
+- [x] AI Next Best Action: `GET /api/contacts/:id/nba` (reglas)
+- [x] Dashboard stats: `GET /api/dashboard/stats` (deals venciendo, actividad reciente, won this month)
+- [x] Rate limiting con Redis, CORS configurado
 
 **Web (`apps/web` — Next.js 15)**
 - [x] Login y registro funcionales
-- [x] Dashboard layout con sidebar
-- [x] `/dashboard/overview` — métricas básicas (contactos, deals, revenue)
-- [x] `/dashboard/contacts` — tabla con búsqueda y paginación
-- [x] `/dashboard/deals` — Kanban por pipeline
-- [x] Auth client-side con localStorage
+- [x] Dashboard layout con sidebar + Toaster global (sonner)
+- [x] `/dashboard/overview` — stats, gráfico Recharts, deals por vencer esta semana, actividad reciente, checklist onboarding
+- [x] `/dashboard/contacts` — tabla con búsqueda, paginación, bulk selection, exportación CSV
+- [x] `/dashboard/contacts/:id` — detalle con: feed de actividades, botones de acción funcionales, editar, recalcular score, panel AI (resumen Claude + NBA)
+- [x] `/dashboard/deals` — Kanban DnD, modal "Nuevo deal", exportación CSV
+- [x] `/dashboard/deals/:id` — detalle del deal con actividades y edición
+- [x] `/dashboard/settings` — menú de configuración con navegación
+- [x] `/dashboard/settings/users` — gestión de usuarios: listar, invitar, cambiar rol, eliminar
+- [x] `/dashboard/conversations`, `/automations`, `/analytics` — placeholders
+- [x] Loading skeletons (`components/ui/skeleton.tsx`) — tabla, cards, kanban
+- [x] `components/contacts/ai-panel.tsx` — panel AI con resumen Claude y NBA
+- [x] Auth token auto-init desde localStorage
 
 ---
 
 ## Roadmap de construcción
 
-### 🔨 MVP Core — Semanas 3–8
+### ✅ MVP Core — COMPLETO
 
 **Contactos**
 - [x] Modal "Nuevo contacto" con formulario completo
-- [x] Página de detalle del contacto (`/dashboard/contacts/:id`)
-- [ ] Timeline 360° con actividades
-- [x] Edición inline de campos
-- [x] Tags y notas
+- [x] Página de detalle (`/dashboard/contacts/:id`)
+- [x] Timeline de actividades real
+- [x] Edición de contacto con PATCH (emails + phones)
+- [x] Tags, notas, lead score recalculable
 
 **Deals**
-- [ ] Modal "Nuevo deal"
-- [ ] Página de detalle del deal
-- [ ] Drag-and-drop entre columnas del Kanban (dnd-kit)
-- [ ] Cambio de stage con animación
-- [ ] Vinculación deal ↔ contacto
+- [x] Modal "Nuevo deal" con pipeline y stage dinámicos
+- [x] Página de detalle (`/dashboard/deals/:id`)
+- [x] Drag-and-drop entre columnas del Kanban
+- [x] Vinculación deal ↔ contacto
 
 **Actividades**
-- [x] Endpoint `POST /api/activities` y `GET /api/contacts/:id/activities`
-- [ ] Feed de actividades en detalle de contacto y deal
-- [ ] Crear nota, llamada, reunión, tarea desde el detalle
+- [x] CRUD completo `/api/activities`
+- [x] Feed de actividades en contacto y deal
+- [x] Modal crear nota, llamada, reunión, tarea, email
+
+**AI básico**
+- [x] Lead scoring por reglas
+- [x] Next Best Action (NBA) rules-based
+- [x] Resumen de contacto con Claude API (Haiku)
+
+**Dashboard**
+- [x] Gráfico de pipeline por etapa (Recharts)
+- [x] Deals por vencer esta semana
+- [x] Actividad reciente del equipo
+- [x] Checklist de onboarding
+
+**UX**
+- [x] Toasts (sonner) en todas las acciones
+- [x] Loading skeletons en tablas, cards y kanban
+- [x] Empty states con call to action
+- [x] Exportación CSV de contactos y deals
 
 **Email**
 - [ ] OAuth Gmail / Outlook
@@ -119,21 +146,11 @@ npm run dev
 - [ ] Tracking de apertura de email
 - [ ] Enviar email desde el detalle del contacto
 
-**AI básico**
-- [ ] Lead scoring por reglas (actividad reciente, emails, deals)
-- [ ] Sugerencia de próxima acción (NBA)
-- [ ] Resumen automático de contacto con Claude API
-
-**Dashboard**
-- [ ] Gráfico de pipeline por etapa (Recharts)
-- [ ] Deals por vencer esta semana
-- [ ] Actividad reciente del equipo
-
 **UX**
-- [ ] Notificaciones in-app
-- [ ] Toast de confirmación en acciones
-- [ ] Empty states con call to action
+- [x] Toast de confirmación en acciones (sonner)
+- [x] Empty states con call to action
 - [ ] Loading skeletons
+- [ ] Notificaciones in-app
 
 ---
 
@@ -294,9 +311,11 @@ crm-propio/
 │   └── web/                  Next.js 15 App Router
 │       ├── app/
 │       │   ├── (auth)/       login, register
-│       │   └── dashboard/    layout, overview, contacts, deals
+│       │   └── dashboard/    layout, overview, contacts, contacts/[id], deals
 │       ├── components/
-│       │   └── layout/       sidebar, header
+│       │   ├── layout/       sidebar, header
+│       │   ├── contacts/     contact-form.tsx
+│       │   └── ui/           modal.tsx
 │       └── lib/              api client, auth, utils
 ├── packages/
 │   ├── database/             Prisma schema + client + seed
@@ -326,6 +345,7 @@ POST   /api/contacts
 GET    /api/contacts/:id
 PATCH  /api/contacts/:id
 DELETE /api/contacts/:id
+POST   /api/contacts/:id/score
 
 GET    /api/deals
 GET    /api/deals/kanban/:pipelineId
@@ -347,6 +367,12 @@ GET    /api/users/:id
 GET    /api/users/me
 PATCH  /api/users/:id
 DELETE /api/users/:id
+
+GET    /api/activities/contact/:contactId
+GET    /api/activities/deal/:dealId
+POST   /api/activities
+PATCH  /api/activities/:id
+DELETE /api/activities/:id
 ```
 
 ## Stack tecnológico

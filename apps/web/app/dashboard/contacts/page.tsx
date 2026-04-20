@@ -4,11 +4,14 @@ import { useEffect, useState, useCallback } from 'react'
 import { Header } from '@/components/layout/header'
 import { api } from '@/lib/api'
 import { formatDate, getInitials } from '@/lib/utils'
-import { Plus, Search, Filter, Mail, Phone, MoreHorizontal } from 'lucide-react'
+import { Plus, Search, Mail, Phone, MoreHorizontal, Download } from 'lucide-react'
 import type { Contact, PaginatedResponse } from '@crm/types'
 import { Modal } from '@/components/ui/modal'
 import { ContactForm } from '@/components/contacts/contact-form'
+import { TableSkeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { downloadCsv } from '@/lib/csv'
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([])
@@ -54,6 +57,26 @@ export default function ContactsPage() {
     }
   }
 
+  const handleExport = async () => {
+    try {
+      const res = await api.get<PaginatedResponse<Contact>>(`/api/contacts?limit=1000`)
+      const rows = res.data.map(c => ({
+        Nombre: [c.firstName, c.lastName].filter(Boolean).join(' ') || c.companyName || '',
+        Tipo: c.type,
+        Email: c.emails?.find(e => e.isPrimary)?.email ?? c.emails?.[0]?.email ?? '',
+        Teléfono: c.phones?.[0]?.phone ?? '',
+        Etapa: c.stage ?? '',
+        Score: c.score,
+        Tags: c.tags?.join(', ') ?? '',
+        Creado: formatDate(c.createdAt),
+      }))
+      downloadCsv(`contactos-${new Date().toISOString().slice(0, 10)}.csv`, rows)
+      toast.success(`${rows.length} contactos exportados`)
+    } catch {
+      toast.error('Error al exportar contactos')
+    }
+  }
+
   return (
     <div>
       <Header title="Contactos" />
@@ -70,19 +93,22 @@ export default function ContactsPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <button className="btn-secondary"><Filter size={16} /> Filtros</button>
+            <button onClick={handleExport} className="btn-secondary"><Download size={16} /> Exportar</button>
             <button onClick={() => setIsModalOpen(true)} className="btn-primary"><Plus size={16} /> Nuevo contacto</button>
           </div>
         </div>
 
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
+            {loading ? (
+              <TableSkeleton rows={8} cols={7} />
+            ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="w-10 px-4 py-3">
-                    <input 
-                      type="checkbox" 
+                    <input
+                      type="checkbox"
                       className="rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
                       checked={selectedIds.length === contacts.length && contacts.length > 0}
                       onChange={toggleSelectAll}
@@ -98,9 +124,7 @@ export default function ContactsPage() {
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
-                  <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">Cargando...</td></tr>
-                ) : contacts.length === 0 ? (
+                {contacts.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
                       {search ? 'Sin resultados' : 'Sin contactos aún. ¡Crea el primero!'}
@@ -176,6 +200,7 @@ export default function ContactsPage() {
                 )}
               </tbody>
             </table>
+            )}
           </div>
           {meta.totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
@@ -201,6 +226,7 @@ export default function ContactsPage() {
           onSuccess={() => {
             setIsModalOpen(false)
             fetchContacts(search)
+            toast.success('Contacto creado')
           }}
         />
       </Modal>

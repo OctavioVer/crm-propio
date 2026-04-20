@@ -100,7 +100,21 @@ export class ContactService {
     const { emails, phones, ...rest } = input
     return prisma.contact.update({
       where: { id },
-      data: rest,
+      data: {
+        ...rest,
+        ...(emails !== undefined && {
+          emails: {
+            deleteMany: {},
+            create: emails,
+          },
+        }),
+        ...(phones !== undefined && {
+          phones: {
+            deleteMany: {},
+            create: phones,
+          },
+        }),
+      },
       select: contactSelect,
     })
   }
@@ -108,6 +122,41 @@ export class ContactService {
   async delete(tenantId: string, id: string) {
     await this.assertExists(tenantId, id)
     await prisma.contact.delete({ where: { id } })
+  }
+
+  async recalculateScore(tenantId: string, id: string) {
+    const contact = await prisma.contact.findFirst({
+      where: { id, tenantId },
+      include: {
+        emails: true,
+        phones: true,
+        activities: { where: { createdAt: { gte: new Date(Date.now() - 30 * 86400_000) } } },
+        deals: { where: { status: { in: ['OPEN', 'WON'] } } },
+      },
+    })
+    if (!contact) throw new Error('Contacto no encontrado')
+
+    let score = 0
+    const breakdown: Record<string, number> = {}
+
+    if (contact.emails.length > 0) { score += 20; breakdown['Tiene email'] = 20 }
+    if (contact.phones.length > 0) { score += 15; breakdown['Tiene teléfono'] = 15 }
+    if (contact.notes) { score += 5; breakdown['Tiene notas'] = 5 }
+
+    const activityPoints = Math.min(contact.activities.length * 5, 30)
+    if (activityPoints > 0) { score += activityPoints; breakdown[`${contact.activities.length} actividades recientes`] = activityPoints }
+
+    const openDeals = contact.deals.filter(d => d.status === 'OPEN').length
+    const openPoints = Math.min(openDeals * 15, 15)
+    if (openPoints > 0) { score += openPoints; breakdown[`${openDeals} deal(s) abierto(s)`] = openPoints }
+
+    const wonDeals = contact.deals.filter(d => d.status === 'WON').length
+    const wonPoints = Math.min(wonDeals * 15, 15)
+    if (wonPoints > 0) { score += wonPoints; breakdown[`${wonDeals} deal(s) ganado(s)`] = wonPoints }
+
+    score = Math.min(score, 100)
+    await prisma.contact.update({ where: { id }, data: { score } })
+    return { score, breakdown }
   }
 
   private async assertExists(tenantId: string, id: string) {

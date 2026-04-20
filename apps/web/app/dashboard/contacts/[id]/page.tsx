@@ -6,33 +6,77 @@ import { formatDate, getInitials } from '@/lib/utils'
 import {
   Mail, Phone, Building2, Calendar, Tag,
   MoreVertical, ArrowLeft, MessageSquare,
-  PhoneOutgoing, FileText, CheckCircle2, User
+  PhoneOutgoing, FileText, CheckCircle2, User, Pencil, RefreshCw
 } from 'lucide-react'
-import type { Contact } from '@crm/types'
+import type { Contact, ActivityType } from '@crm/types'
 import { useRouter } from 'next/navigation'
+import { ActivityFeed } from '@/components/contacts/activity-feed'
+import { AddActivityModal } from '@/components/contacts/add-activity-modal'
+import { AiPanel } from '@/components/contacts/ai-panel'
+import { Modal } from '@/components/ui/modal'
+import { ContactForm } from '@/components/contacts/contact-form'
+import { Skeleton } from '@/components/ui/skeleton'
+import { toast } from 'sonner'
 
 export default function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [contact, setContact] = useState<Contact | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('timeline')
+  const [activityRefreshKey, setActivityRefreshKey] = useState(0)
+  const [activityModal, setActivityModal] = useState<{ open: boolean; type: ActivityType }>({ open: false, type: 'NOTE' })
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [scoringLoading, setScoringLoading] = useState(false)
   const router = useRouter()
 
-  useEffect(() => {
-    const fetchContact = async () => {
-      try {
-        const res = await api.get<Contact>(`/api/contacts/${id}`)
-        setContact(res)
-      } catch (err) {
-        console.error(err)
-      } finally {
-        setLoading(false)
-      }
+  const fetchContact = async () => {
+    try {
+      const res = await api.get<Contact>(`/api/contacts/${id}`)
+      setContact(res)
+    } catch {
+      toast.error('No se pudo cargar el contacto')
+    } finally {
+      setLoading(false)
     }
+  }
+
+  useEffect(() => {
     fetchContact()
   }, [id])
 
-  if (loading) return <div className="p-8 text-center text-gray-500 font-medium">Cargando perfil...</div>
+  const openActivity = (type: ActivityType) => setActivityModal({ open: true, type })
+
+  const handleRecalculateScore = async () => {
+    setScoringLoading(true)
+    try {
+      const result = await api.post<{ score: number; breakdown: Record<string, number> }>(`/api/contacts/${id}/score`)
+      setContact(prev => prev ? { ...prev, score: result.score } : prev)
+      toast.success(`Score actualizado: ${result.score}/100`)
+    } catch {
+      toast.error('No se pudo calcular el score')
+    } finally {
+      setScoringLoading(false)
+    }
+  }
+
+  if (loading) return (
+    <div className="flex flex-col h-full bg-gray-50/50">
+      <div className="bg-white border-b border-gray-200 px-6 py-6">
+        <div className="flex items-center gap-4">
+          <Skeleton className="w-10 h-10 rounded-full" />
+          <div className="space-y-2"><Skeleton className="h-5 w-40" /><Skeleton className="h-3 w-24" /></div>
+        </div>
+      </div>
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 p-6 space-y-4">
+          {Array.from({ length: 3 }).map((_, i) => <Skeleton key={i} className="h-20 rounded-xl" />)}
+        </div>
+        <div className="w-80 bg-white border-l border-gray-200 p-6 space-y-4 hidden xl:block">
+          {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-6 rounded" />)}
+        </div>
+      </div>
+    </div>
+  )
   if (!contact) return <div className="p-8 text-center text-red-500 font-medium">Contacto no encontrado</div>
 
   const fullName = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.companyName || 'Sin nombre'
@@ -74,25 +118,27 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
           </div>
           <div className="ml-auto flex items-center gap-2">
             <button className="btn-secondary px-3 py-1.5"><MoreVertical size={16} /></button>
-            <button className="btn-primary px-4 py-1.5">Editar</button>
+            <button onClick={() => setEditModalOpen(true)} className="btn-primary px-4 py-1.5 flex items-center gap-1.5">
+              <Pencil size={14} /> Editar
+            </button>
           </div>
         </div>
 
         {/* Action Bar */}
         <div className="flex items-center gap-3 pt-2">
-          <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
+          <button onClick={() => openActivity('NOTE')} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
             <MessageSquare size={16} className="text-gray-400" /> Nota
           </button>
-          <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
+          <button onClick={() => openActivity('EMAIL')} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
             <Mail size={16} className="text-gray-400" /> Correo
           </button>
-          <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
+          <button onClick={() => openActivity('CALL')} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
             <PhoneOutgoing size={16} className="text-gray-400" /> Llamada
           </button>
-          <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
+          <button onClick={() => openActivity('MEETING')} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
             <Calendar size={16} className="text-gray-400" /> Reunión
           </button>
-          <button className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
+          <button onClick={() => openActivity('TASK')} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
             <CheckCircle2 size={16} className="text-gray-400" /> Tarea
           </button>
         </div>
@@ -103,14 +149,15 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
         {/* Left: Tabs & Content */}
         <div className="flex-1 flex flex-col min-w-0">
           <div className="flex border-b border-gray-200 bg-white px-6">
-            {['Timeline', 'Actividad', 'Deals', 'Archivos'].map((tab) => (
+            {['Timeline', 'Deals', 'Archivos'].map((tab) => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab.toLowerCase())}
-                className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.toLowerCase()
-                  ? 'border-brand-500 text-brand-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                  }`}
+                className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
+                  activeTab === tab.toLowerCase()
+                    ? 'border-brand-500 text-brand-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                }`}
               >
                 {tab}
               </button>
@@ -120,17 +167,9 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
           <div className="flex-1 overflow-y-auto p-6">
             {activeTab === 'timeline' && (
               <div className="space-y-6">
-                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Próximas actividades</h3>
-                <div className="bg-brand-50/50 border border-brand-100 rounded-xl p-6 text-center">
-                  <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mx-auto mb-3 shadow-sm">
-                    <Calendar size={20} className="text-brand-500" />
-                  </div>
-                  <p className="text-sm font-medium text-gray-900">No hay tareas pendientes</p>
-                  <p className="text-xs text-gray-500 mt-1">Programa una actividad para dar seguimiento.</p>
-                </div>
-
-                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider pt-4">Historial</h3>
-                <div className="relative pl-8 space-y-8 before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gray-200">
+                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Historial de actividades</h3>
+                <ActivityFeed contactId={id} refreshKey={activityRefreshKey} />
+                <div className="relative pl-8 before:absolute before:left-[11px] before:top-0 before:h-4 before:w-0.5 before:bg-gray-200">
                   <div className="relative">
                     <div className="absolute -left-8 top-1 w-6 h-6 bg-green-100 text-green-600 rounded-full flex items-center justify-center ring-4 ring-gray-50">
                       <User size={12} />
@@ -143,9 +182,14 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
                 </div>
               </div>
             )}
-            {activeTab !== 'timeline' && (
+            {activeTab === 'deals' && (
               <div className="flex items-center justify-center h-48 text-gray-400 text-sm italic">
-                Contenido próximamente...
+                Deals vinculados próximamente...
+              </div>
+            )}
+            {activeTab === 'archivos' && (
+              <div className="flex items-center justify-center h-48 text-gray-400 text-sm italic">
+                Archivos próximamente...
               </div>
             )}
           </div>
@@ -157,27 +201,21 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Información básica</h3>
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-gray-50 rounded-lg text-gray-400 mt-0.5">
-                  <Mail size={16} />
-                </div>
+                <div className="p-2 bg-gray-50 rounded-lg text-gray-400 mt-0.5"><Mail size={16} /></div>
                 <div>
                   <p className="text-xs text-gray-500">Email principal</p>
                   <p className="text-sm font-medium text-gray-900 break-all">{primaryEmail || 'No asignado'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-gray-50 rounded-lg text-gray-400 mt-0.5">
-                  <Phone size={16} />
-                </div>
+                <div className="p-2 bg-gray-50 rounded-lg text-gray-400 mt-0.5"><Phone size={16} /></div>
                 <div>
                   <p className="text-xs text-gray-500">Teléfono</p>
                   <p className="text-sm font-medium text-gray-900">{primaryPhone || 'No asignado'}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <div className="p-2 bg-gray-50 rounded-lg text-gray-400 mt-0.5">
-                  <Tag size={16} />
-                </div>
+                <div className="p-2 bg-gray-50 rounded-lg text-gray-400 mt-0.5"><Tag size={16} /></div>
                 <div>
                   <p className="text-xs text-gray-500">Etiquetas</p>
                   <div className="flex flex-wrap gap-1 mt-1">
@@ -195,15 +233,25 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
             <div className="space-y-3">
               <div className="flex items-center justify-between py-2 border-b border-gray-50">
                 <span className="text-xs text-gray-500">Lead Score</span>
-                <span className="text-xs font-semibold text-brand-600 bg-brand-50 px-2 py-0.5 rounded">{contact.score}</span>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-semibold text-brand-600 bg-brand-50 px-2 py-0.5 rounded">{contact.score}/100</span>
+                  <button
+                    onClick={handleRecalculateScore}
+                    disabled={scoringLoading}
+                    title="Recalcular score"
+                    className="p-0.5 text-gray-400 hover:text-brand-600 transition-colors disabled:opacity-40"
+                  >
+                    <RefreshCw size={12} className={scoringLoading ? 'animate-spin' : ''} />
+                  </button>
+                </div>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-gray-50">
                 <span className="text-xs text-gray-500">Tipo</span>
-                <span className="text-xs font-medium text-gray-900">{contact.type}</span>
+                <span className="text-xs font-medium text-gray-900">{contact.type === 'PERSON' ? 'Persona' : 'Empresa'}</span>
               </div>
               <div className="flex items-center justify-between py-2 border-b border-gray-50">
-                <span className="text-xs text-gray-500">Owner</span>
-                <span className="text-xs font-medium text-gray-900">Admin Demo</span>
+                <span className="text-xs text-gray-500">Creado</span>
+                <span className="text-xs font-medium text-gray-900">{formatDate(contact.createdAt)}</span>
               </div>
             </div>
           </section>
@@ -213,12 +261,39 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
             <p className="text-xs text-gray-600 italic line-clamp-4">
               {contact.notes || 'No hay notas sobre este contacto todavía.'}
             </p>
-            <button className="text-xs font-semibold text-brand-600 mt-3 flex items-center gap-1 hover:underline">
-              <FileText size={12} /> Ver todas
-            </button>
+            {contact.notes && (
+              <button className="text-xs font-semibold text-brand-600 mt-3 flex items-center gap-1 hover:underline">
+                <FileText size={12} /> Ver todas
+              </button>
+            )}
           </section>
+
+          <AiPanel contactId={id} />
         </div>
       </div>
+
+      <AddActivityModal
+        isOpen={activityModal.open}
+        onClose={() => setActivityModal(prev => ({ ...prev, open: false }))}
+        onSuccess={() => {
+          setActivityModal(prev => ({ ...prev, open: false }))
+          setActivityRefreshKey(k => k + 1)
+        }}
+        contactId={id}
+        defaultType={activityModal.type}
+      />
+
+      <Modal isOpen={editModalOpen} onClose={() => setEditModalOpen(false)} title="Editar contacto" maxWidth="max-w-xl">
+        <ContactForm
+          contact={contact}
+          onCancel={() => setEditModalOpen(false)}
+          onSuccess={() => {
+            setEditModalOpen(false)
+            fetchContact()
+            toast.success('Contacto actualizado')
+          }}
+        />
+      </Modal>
     </div>
   )
 }
