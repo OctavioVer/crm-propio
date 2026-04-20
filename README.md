@@ -1,520 +1,371 @@
-Quiero que diseñes y comiences a construir un CRM omnicanal, modular, enterprise-grade y AI-first, capaz de competir a nivel mundial con plataformas como HubSpot, Salesforce, GoHighLevel, Pipedrive, Zoho, Intercom y ActiveCampaign, pero con una experiencia más moderna, más automatizable y más integrada.
+# CRM Propio
 
-No quiero un CRM básico. Quiero una plataforma de gestión comercial, marketing, comunicación, automatización, atención y analítica, todo en un solo ecosistema.
+Plataforma CRM enterprise, AI-native, multi-tenant y white-label.
 
-Tu misión es diseñar un CRM que sea considerado “best-in-class” para empresas medianas, grandes, agencias, franquicias, municipios, equipos comerciales, consultoras, call centers y organizaciones con múltiples unidades de negocio.
+---
 
-========================
-OBJETIVO DEL PRODUCTO
+## Setup inicial
 
-Construir una plataforma CRM completa que centralice:
+### Requisitos
+- Node.js 20+
+- Docker Desktop corriendo
 
-contactos, empresas, leads y oportunidades
-conversaciones multicanal
-automatizaciones
-marketing
-ventas
-seguimiento comercial
-customer success
-soporte
-analítica avanzada
-IA operativa y predictiva
-integraciones externas
-administración multiempresa / multitenant
-seguridad enterprise
-APIs para ecosistema y partners
+### 1. Variables de entorno
+```bash
+cp .env.example .env
+```
 
-Debe servir tanto para:
+Editá `.env` con tus valores. Para desarrollo local los defaults funcionan.
 
-empresas que usan el CRM internamente
-agencias o consultoras que gestionan varias cuentas/clientes
-organizaciones complejas con múltiples sucursales, equipos, áreas o dependencias
-========================
-VISIÓN DEL PRODUCTO
+### 2. Infraestructura local
+```bash
+docker-compose up -d
+```
+Levanta Postgres (5433), Redis (6379) y Mailpit (8025).
 
-Quiero un CRM superior al promedio del mercado, con enfoque en:
+### 3. Dependencias
+```bash
+npm install
+```
 
-omnicanalidad real
-automatización visual no-code / low-code
-trazabilidad total del lead y del cliente
-inteligencia artificial aplicada al negocio
-reporting ejecutivo y operativo
-personalización profunda
-experiencia UX/UI moderna
-escalabilidad global
-multi-tenant
-white-label
-API-first
-event-driven architecture
-seguridad y compliance empresarial
-========================
-REQUISITOS FUNCIONALES OBLIGATORIOS
-NÚCLEO CRM
-gestión de contactos, empresas, cuentas y relaciones
-leads, prospectos, clientes, ex clientes y estados personalizados
-oportunidades / deals con pipelines múltiples
-embudos por unidad de negocio
-tareas, recordatorios, notas, etiquetas, actividades e historial
-timeline 360° de cada contacto
-ownership de registros
-scoring manual y automático
-custom fields ilimitados
-vistas guardadas y filtros avanzados
-deduplicación inteligente
-importación y exportación masiva
-merge de registros
-segmentación dinámica
-GESTIÓN COMERCIAL
-pipelines visuales drag-and-drop
-forecast de ventas
-etapas y probabilidades personalizables
-SLA por etapa
-playbooks comerciales
-seguimiento de llamadas, reuniones, emails y mensajes
-cotizaciones / presupuestos
-productos, servicios, catálogos y precios
-comisiones, objetivos y performance por vendedor
-alertas por inactividad o riesgo de pérdida
-next best action con IA
-OMNICANALIDAD / UNIFIED INBOX
-bandeja unificada de conversaciones
-WhatsApp
-Instagram DM
-Facebook Messenger
-email
-formularios web
-live chat del sitio
-SMS
-llamadas / telefonía si aplica
-comentarios y respuestas sociales donde sea viable por APIs oficiales
-asignación automática de conversaciones
-reglas de enrutamiento
-templates
-respuestas rápidas
-conversación colaborativa interna
-etiquetas de conversación
-auditoría de agentes
-estado de atención, SLA, prioridad y categoría
-AUTOMATIZACIONES
-workflow builder visual tipo canvas
-triggers, conditions, delays, branches, waits, webhooks, retries
-automatizaciones de ventas, marketing, soporte y operaciones
-disparadores por eventos del sistema
-disparadores por mensajes entrantes
-disparadores por formularios, cambios de etapa, pagos, tareas, citas, etiquetas, campañas
-webhooks salientes
-endpoints entrantes
-scheduler / cron jobs
-colas de trabajos
-reintentos automáticos
-manejo de errores
-logs de ejecución
-versionado de workflows
-plantillas de automatización
-testing de workflows
-sandbox de automatizaciones
-MARKETING & LEAD CAPTURE
-formularios embebibles
-landing pages
-popups
-chat widgets
-lead tracking
-lead source attribution
-UTM tracking
-campañas email
-secuencias
-nurturing
-listas dinámicas
-remarketing audiences
-lead scoring predictivo
-journeys por comportamiento
-campañas multicanal
-A/B testing
-remarketing triggers
-pixel/event tracking
-analítica de conversión
-funnels visuales
-CALENDARIO Y CITAS
-agenda de reuniones
-calendar booking pages
-buffers, disponibilidad, zonas horarias
-round robin
-confirmaciones y recordatorios
-reprogramación
-integración con Google Calendar y Outlook
-eventos ligados al contacto y oportunidad
-no-show tracking
-workflows por asistencia o ausencia
-CUSTOMER SUCCESS / SOPORTE
-tickets
-estados y prioridades
-bandejas por equipo
-base de conocimiento
-help center
-portal del cliente
-encuestas de satisfacción
-NPS / CSAT
-health score de cuentas
-churn prediction
-renewals / upsells / expansion opportunities
-onboarding pipelines
-casos y solicitudes internas
-IA NATIVA
-resumen automático de conversaciones
-clasificación automática de leads
-extracción de intención y entidades
-análisis de sentimiento
-detección de urgencia
-sugerencias de respuesta
-redacción asistida
-scoring predictivo
-predicción de cierre
-detección de riesgo comercial
-agente asistente para vendedores
-agente asistente para soporte
-recomendación de próxima acción
-generación automática de tareas
-segmentación inteligente
-búsqueda semántica
-copiloto interno para consultar datos del CRM en lenguaje natural
-AI governance, human-in-the-loop y logs de decisiones de IA
-ANALÍTICA / BI
-dashboards ejecutivos
-dashboards operativos
-métricas por vendedor, equipo, sucursal, canal y campaña
-conversión por etapa
-cohortes
-CAC, LTV, ROAS si aplica
-origen del lead
-atribución multitoque
-revenue analytics
-tiempo de respuesta
-tiempo de resolución
-productividad por agente
-report builder custom
-exportación CSV / Excel / PDF
-scheduled reports
-alertas por anomalías
-benchmark entre equipos o sucursales
-ADMINISTRACIÓN AVANZADA
-multi-tenant real
-multiempresa
-multisucursal
-multibrand
-multiworkspace
-white-label
-dominios personalizados
-branding por cliente
-feature flags
-roles y permisos granulares
-approval flows
-auditoría completa
-logs de seguridad
-configuración por tenant
-catálogos y objetos personalizados
-campos obligatorios por etapa
-políticas por equipo o negocio
-========================
-INTEGRACIONES OBLIGATORIAS
+### 4. Base de datos
+```bash
+cd packages/database
+npm run db:migrate:dev -- --name init
+npm run db:seed
+cd ../..
+```
 
-Diseña el sistema para integrarse con:
+### 5. Levantar todo
+```bash
+npm run dev
+```
 
-Meta Ads / Facebook Lead Ads
-Facebook Pages
-Instagram Business / Instagram Messaging
-WhatsApp Business Platform
-n8n
-webhooks genéricos
-API REST propia
-email providers
-Google Calendar
-Outlook Calendar
-Google Sheets
-Slack
-Stripe
-Mercado Pago
-CRM import tools
-ERPs / sistemas externos
-telefonía / VoIP
-plataformas de anuncios
-herramientas de BI
-S3 o storage compatible
-autenticación SSO / OAuth providers
+| Servicio  | URL                        |
+|-----------|----------------------------|
+| Web app   | http://localhost:3000      |
+| API       | http://localhost:3001      |
+| Mailpit   | http://localhost:8025      |
 
-Debes diseñar la integración de forma profesional:
+### Credenciales demo
+| Email              | Password   | Rol    | Slug  |
+|--------------------|------------|--------|-------|
+| admin@demo.com     | admin123   | Admin  | demo  |
+| seller@demo.com    | seller123  | Seller | demo  |
 
-inbound webhooks
-outbound webhooks
-API keys
-OAuth 2.0
-refresh tokens
-rate limiting
-retries
-dead-letter queues
-idempotencia
-observabilidad
-auditoría de sincronizaciones
-conflict resolution
-sync status dashboard
-========================
-REQUISITOS ENTERPRISE / GLOBALES
+---
 
-Quiero que compita contra empresas mundiales, así que debe incluir:
+## Estado actual del proyecto
 
-arquitectura escalable
-multi-región si fuese necesario
-internacionalización i18n
-multi-language
-multi-currency
-timezones
-tenant isolation
-row-level security si aplica
-RBAC + ABAC si conviene
-SSO
-SAML
-OAuth
-2FA / MFA
-cifrado en tránsito y en reposo
-audit logs inmutables
-backup strategy
-disaster recovery
-observabilidad end-to-end
-métricas, logs y trazas
-health checks
-colas y procesamiento asíncrono
-cache distribuido
-alta disponibilidad
-escalado horizontal
-control de costos
-cumplimiento de privacidad
-consentimiento y preferencia de canales
-políticas de retención de datos
-data residency opcional
-API versioning
-test coverage alta
-CI/CD
-ambientes dev / staging / prod
-documentación técnica y funcional
-SDK o developer portal a futuro
-marketplace de integraciones a futuro
-========================
-REQUISITOS DE UX / UI
+### ✅ Sprint 0 — Fundación (COMPLETO)
 
-La interfaz debe sentirse superior al promedio del mercado:
+**Infraestructura**
+- [x] Monorepo Turborepo + npm workspaces
+- [x] Docker Compose (Postgres 16 + Redis 7 + Mailpit)
+- [x] CI/CD con GitHub Actions (lint, type-check, build, test)
+- [x] Variables de entorno centralizadas en raíz
 
-moderna
-limpia
-rápida
-premium
-enfocada en productividad
-con navegación clara
-responsive
-apta para equipos comerciales y operativos
+**Base de datos (`packages/database`)**
+- [x] Schema Prisma completo — 20+ modelos
+- [x] Multi-tenant con Row Level Security (RLS) en Postgres
+- [x] Modelos: Tenant, User, Session, MagicLink, Team, Contact, Company, Pipeline, Deal, Product, Activity, Conversation, Message, Workflow, AiDecision, AuditLog, FeatureFlag, CustomField
+- [x] Seed con tenant demo, usuarios, pipeline y deal de ejemplo
 
-Quiero:
+**API (`apps/api` — Fastify 4)**
+- [x] Auth: registro, login, logout, refresh token, magic link
+- [x] Multi-tenant middleware (por subdomain o header `X-Tenant-Slug`)
+- [x] JWT con roles (SUPER_ADMIN, ADMIN, MANAGER, SELLER, VIEWER)
+- [x] CRUD completo: Contactos, Deals, Pipelines, Usuarios
+- [x] Kanban endpoint: `/api/deals/kanban/:pipelineId`
+- [x] Rate limiting con Redis
+- [x] CORS configurado
 
-dashboard principal tipo command center
-sidebar clara
-vistas kanban, tabla, timeline, calendar y analytics
-filtros potentes
-edición inline
-bulk actions
-quick actions
-paneles laterales
-shortcuts
-experiencia pensada para velocidad operativa
-onboarding guiado
-empty states inteligentes
-diseño consistente de componentes
-design system reutilizable
-========================
-ARQUITECTURA TÉCNICA ESPERADA
+**Web (`apps/web` — Next.js 15)**
+- [x] Login y registro funcionales
+- [x] Dashboard layout con sidebar
+- [x] `/dashboard/overview` — métricas básicas (contactos, deals, revenue)
+- [x] `/dashboard/contacts` — tabla con búsqueda y paginación
+- [x] `/dashboard/deals` — Kanban por pipeline
+- [x] Auth client-side con localStorage
 
-Propón una arquitectura moderna, escalable y mantenible.
+---
 
-Quiero que elijas y justifiques stack, pero por defecto prioriza algo como:
+## Roadmap de construcción
 
-frontend moderno
-backend API-first
-base de datos relacional sólida
-colas / workers
-cache
-object storage
-event bus
-observabilidad
-auth robusta
-infraestructura cloud-ready
+### 🔨 MVP Core — Semanas 3–8
 
-Evalúa si conviene:
+**Contactos**
+- [ ] Modal "Nuevo contacto" con formulario completo
+- [ ] Página de detalle del contacto (`/dashboard/contacts/:id`)
+- [ ] Timeline 360° con actividades
+- [ ] Edición inline de campos
+- [ ] Tags y notas
 
-monorepo
-modular monolith o microservices
-event-driven architecture
-CQRS donde aporte valor
-jobs asincrónicos
-search engine
-analytics store separado
-vector search para IA
-workflow engine propio o híbrido
-motor de permisos robusto
-========================
-MODELO DE DATOS
+**Deals**
+- [ ] Modal "Nuevo deal"
+- [ ] Página de detalle del deal
+- [ ] Drag-and-drop entre columnas del Kanban (dnd-kit)
+- [ ] Cambio de stage con animación
+- [ ] Vinculación deal ↔ contacto
 
-Diseña entidades y relaciones para:
+**Actividades**
+- [ ] Endpoint `POST /api/activities` y `GET /api/contacts/:id/activities`
+- [ ] Feed de actividades en detalle de contacto y deal
+- [ ] Crear nota, llamada, reunión, tarea desde el detalle
 
-tenants
-users
-teams
-roles
-permissions
-contacts
-companies
-deals
-pipelines
-stages
-activities
-tasks
-notes
-conversations
-messages
-channels
-campaigns
-segments
-forms
-automations
-workflow runs
-webhooks
-tickets
-knowledge base
-products
-quotes
-invoices/payments si aplica
-integrations
-sync logs
-notifications
-audit logs
-AI summaries
-AI recommendations
-event logs
-dashboards/reports
-custom objects
-custom fields
-field mappings
-========================
-LO QUE QUIERO QUE HAGAS
+**Email**
+- [ ] OAuth Gmail / Outlook
+- [ ] Sincronización de inbox
+- [ ] Tracking de apertura de email
+- [ ] Enviar email desde el detalle del contacto
 
-Trabaja en este orden exacto:
+**AI básico**
+- [ ] Lead scoring por reglas (actividad reciente, emails, deals)
+- [ ] Sugerencia de próxima acción (NBA)
+- [ ] Resumen automático de contacto con Claude API
 
-FASE 1 — DEFINICIÓN
+**Dashboard**
+- [ ] Gráfico de pipeline por etapa (Recharts)
+- [ ] Deals por vencer esta semana
+- [ ] Actividad reciente del equipo
 
-Redacta un PRD completo del producto.
-Define propuesta de valor, ICPs, casos de uso y diferenciadores.
-Enumera funcionalidades core, advanced y enterprise.
-Define qué lo hace superior frente a CRMs tradicionales.
-Prioriza MVP, V2 y V3.
+**UX**
+- [ ] Notificaciones in-app
+- [ ] Toast de confirmación en acciones
+- [ ] Empty states con call to action
+- [ ] Loading skeletons
 
-FASE 2 — ARQUITECTURA
-6. Diseña la arquitectura de sistema.
-7. Define módulos del backend y frontend.
-8. Diseña esquema de base de datos.
-9. Diseña modelo de eventos y automatizaciones.
-10. Define estrategia de permisos, auditoría y multitenancy.
-11. Diseña estrategia de integraciones.
+---
 
-FASE 3 — IMPLEMENTACIÓN
-12. Genera la estructura de carpetas del proyecto.
-13. Crea el monorepo o estructura recomendada.
-14. Genera archivos base del proyecto.
-15. Crea backend base, frontend base, auth base, base de datos y seeds.
-16. Crea componentes reutilizables.
-17. Crea módulos por prioridad de negocio.
-18. Agrega pruebas.
-19. Agrega documentación de instalación y despliegue.
+### 🚀 MVP Plus — Semanas 9–14
 
-FASE 4 — ROADMAP
-20. Define roadmap por fases:
+**Comunicaciones**
+- [ ] WhatsApp Business API (Twilio o Meta directa)
+- [ ] Bandeja unificada de conversaciones
+- [ ] Asignación de conversaciones a agentes
+- [ ] Templates de respuesta rápida
+- [ ] Chatbot básico con handoff humano
 
-MVP vendible
-versión robusta para pymes
-versión enterprise
-versión white-label / agencias
-versión global escalable
-========================
-ENTREGABLES OBLIGATORIOS
+**Automatizaciones v1**
+- [ ] Workflow builder visual (React Flow)
+- [ ] Triggers: deal creado, etapa cambiada, contacto creado, formulario enviado
+- [ ] Acciones: enviar email, crear tarea, asignar owner, mover etapa, notificar
+- [ ] Secuencias de follow-up automático
+- [ ] BullMQ para ejecución asincrónica
 
-Quiero que tu respuesta esté organizada así:
+**Reportes**
+- [ ] Exportación CSV y Excel de contactos y deals
+- [ ] Exportación PDF de reportes
+- [ ] Filtros avanzados guardados
+- [ ] Reporte de performance por vendedor
 
-Resumen ejecutivo del producto
-Diferenciadores estratégicos
-Mapa completo de módulos
-Requisitos funcionales
-Requisitos no funcionales
-Arquitectura propuesta
-Stack tecnológico recomendado y justificación
-Esquema de base de datos
-Modelo de permisos y multitenancy
-Modelo de integraciones
-Roadmap MVP / V2 / V3
-Estructura del repositorio
-Primeros archivos/código a crear
-Riesgos técnicos y cómo mitigarlos
-Recomendaciones para escalar globalmente
-========================
-REGLAS IMPORTANTES
-No me des una respuesta genérica.
-No me des un CRM simple.
-Piensa como si esto fuera una startup global respaldada por capital serio.
-Prioriza escalabilidad, mantenibilidad y profundidad funcional.
-Diseña para empresas reales, no para demos.
-Usa buenas prácticas enterprise.
-Diseña cada integración de forma profesional.
-Donde haya trade-offs, explícalos y elige.
-Propón lo que falte, aunque yo no lo haya pedido explícitamente.
-Si detectas componentes críticos ausentes, agrégalos.
-No uses scraping como base del producto si existe API oficial.
-No simplifiques seguridad, auditoría, multitenancy ni automatizaciones.
-Si conviene, sugiere componentes premium que hagan al producto superior al mercado.
-========================
-EXTRA: DIFERENCIADORES QUE QUIERO EVALUAR
+**Usuarios y equipos**
+- [ ] Pantalla de gestión de usuarios
+- [ ] Invitación por email
+- [ ] Creación y gestión de equipos
+- [ ] Asignación de leads por round-robin
 
-Quiero que consideres agregar, si tiene sentido competitivo:
+**Mobile**
+- [ ] PWA responsive completa
+- [ ] Push notifications (Web Push API)
 
-data clean room / customer 360
-identity resolution
-AI lead enrichment
-decision engine
-playbooks dinámicos
-digital sales room
-account intelligence
-embedded analytics
-advanced attribution
-omnichannel journey orchestration
-partner / reseller portal
-franchise / branch management
-municipal / public-service workflows
-contract / document workflows
-approvals engine
-SLA engine
-revenue operations layer
-no-code custom objects
-marketplace de apps
-white-label app builder
-sandbox por tenant
-self-serve onboarding
-tenant-specific AI agents
-semantic search sobre conversaciones, contactos y documentos
-executive cockpit con KPIs en tiempo real
-========================
-SALIDA FINAL
+**Onboarding**
+- [ ] Wizard de setup al registrarse
+- [ ] Checklist de primeros pasos
+- [ ] Datos de ejemplo opcionales
 
-Empieza ahora con una respuesta de nivel experto.
+---
 
-Primero entrégame:
+### ⚡ Fase 3 — Growth (Semanas 15–22)
 
-visión del producto
-propuesta de arquitectura
-mapa total de módulos
-MVP recomendado
-stack ideal
-modelo de base de datos de alto nivel
-roadmap de construcción
+**Analytics avanzado**
+- [ ] ClickHouse para OLAP
+- [ ] Dashboard ejecutivo con KPIs en tiempo real
+- [ ] Métricas por vendedor, equipo, canal y campaña
+- [ ] Cohortes de clientes
+- [ ] CAC, LTV, ROAS
+- [ ] Atribución multitoque
+- [ ] Revenue analytics (MRR, ARR, churn)
+- [ ] Report builder drag-and-drop
+- [ ] Reportes programados por email
+- [ ] Alertas por anomalías
+
+**Marketing**
+- [ ] Segmentación dinámica con filtros
+- [ ] Campañas de email (bulk)
+- [ ] A/B testing de emails
+- [ ] Formularios web embebibles
+- [ ] Landing pages builder básico
+- [ ] UTM tracking y atribución de origen
+
+**AI avanzado**
+- [ ] Búsqueda semántica (pgvector + embeddings)
+- [ ] Copiloto en lenguaje natural (NL → datos del CRM)
+- [ ] Scoring predictivo con ML
+- [ ] Detección de churn
+- [ ] Predicción de cierre de deals
+- [ ] Análisis de sentimiento en conversaciones
+- [ ] AI Governance: logs, human-in-the-loop, rollback
+
+**Integraciones**
+- [ ] Slack (notificaciones)
+- [ ] Calendly / Google Calendar
+- [ ] Stripe (pagos ligados a deals)
+- [ ] n8n / webhooks genéricos
+- [ ] Meta Ads / Facebook Lead Ads
+- [ ] Google Sheets export
+
+---
+
+### 🏢 Fase 4 — Enterprise (Semanas 23–34)
+
+**Multi-tenant avanzado**
+- [ ] White-label completo (dominio, logo, colores, tipografía)
+- [ ] Dominios personalizados por tenant
+- [ ] Multiempresa / multisucursal / multibrand
+- [ ] Billing por tenant (Stripe)
+- [ ] Feature flags por plan
+- [ ] Sandbox por tenant
+
+**Administración**
+- [ ] Roles y permisos granulares (RBAC + ABAC)
+- [ ] Approval flows multi-step
+- [ ] SLA engine con escalaciones automáticas
+- [ ] Auditoría completa con event log inmutable
+- [ ] Objetos y campos personalizados no-code
+- [ ] Campos obligatorios por etapa de pipeline
+- [ ] Políticas por equipo o negocio
+
+**Comercial avanzado**
+- [ ] Cotizaciones y propuestas con firma digital
+- [ ] Contratos con flujo de aprobación
+- [ ] Comisiones y objetivos por vendedor
+- [ ] Forecast de ventas
+- [ ] Playbooks comerciales
+
+**Customer Success**
+- [ ] Tickets de soporte
+- [ ] Base de conocimiento
+- [ ] Portal del cliente
+- [ ] NPS / CSAT automático
+- [ ] Health score de cuentas
+- [ ] Churn prediction
+
+**Seguridad**
+- [ ] SSO / SAML
+- [ ] 2FA / MFA
+- [ ] Cifrado en reposo
+- [ ] Políticas de retención de datos
+- [ ] Logs de seguridad
+
+---
+
+### 🌍 Fase 5 — Platform (Semanas 35+)
+
+- [ ] No-code custom object builder
+- [ ] Marketplace de integraciones
+- [ ] Public API + developer portal
+- [ ] SDK para clientes
+- [ ] White-label app builder
+- [ ] Tenant-specific AI agents
+- [ ] Executive cockpit en tiempo real
+- [ ] Franchise / branch management
+- [ ] Revenue operations layer completo
+- [ ] Multi-región
+- [ ] i18n / multi-language
+- [ ] Multi-currency
+
+---
+
+## Estructura del proyecto
+
+```
+crm-propio/
+├── apps/
+│   ├── api/                  Fastify 4 — API REST
+│   │   └── src/
+│   │       ├── config.ts     Variables de entorno validadas con Zod
+│   │       ├── app.ts        Setup de Fastify + plugins
+│   │       ├── index.ts      Entrypoint
+│   │       ├── plugins/      cors, auth (JWT), tenant, rate-limit
+│   │       ├── routes/       auth, contacts, deals, pipelines, users
+│   │       ├── services/     auth.service, contact.service, deal.service
+│   │       └── lib/          redis, mailer
+│   └── web/                  Next.js 15 App Router
+│       ├── app/
+│       │   ├── (auth)/       login, register
+│       │   └── dashboard/    layout, overview, contacts, deals
+│       ├── components/
+│       │   └── layout/       sidebar, header
+│       └── lib/              api client, auth, utils
+├── packages/
+│   ├── database/             Prisma schema + client + seed
+│   │   └── prisma/
+│   │       ├── schema.prisma Schema completo con 20+ modelos
+│   │       ├── seed.ts       Datos demo
+│   │       └── setup-rls.sql RLS policies para multi-tenant
+│   └── types/                Tipos TypeScript compartidos
+├── docker-compose.yml        Postgres + Redis + Mailpit
+├── turbo.json                Pipeline de Turborepo
+└── .env.example              Variables de entorno requeridas
+```
+
+## API endpoints disponibles
+
+```
+POST   /api/auth/register
+POST   /api/auth/login
+POST   /api/auth/logout
+POST   /api/auth/refresh
+POST   /api/auth/magic-link
+POST   /api/auth/magic-link/verify
+GET    /api/auth/me
+
+GET    /api/contacts
+POST   /api/contacts
+GET    /api/contacts/:id
+PATCH  /api/contacts/:id
+DELETE /api/contacts/:id
+
+GET    /api/deals
+GET    /api/deals/kanban/:pipelineId
+POST   /api/deals
+GET    /api/deals/:id
+PATCH  /api/deals/:id
+PATCH  /api/deals/:id/stage
+DELETE /api/deals/:id
+
+GET    /api/pipelines
+POST   /api/pipelines
+GET    /api/pipelines/:id
+PATCH  /api/pipelines/:id
+DELETE /api/pipelines/:id
+
+GET    /api/users
+POST   /api/users
+GET    /api/users/:id
+GET    /api/users/me
+PATCH  /api/users/:id
+DELETE /api/users/:id
+```
+
+## Stack tecnológico
+
+| Capa | Tecnología |
+|------|-----------|
+| Monorepo | Turborepo 2 + npm workspaces |
+| API | Node.js 20 + Fastify 4 + TypeScript |
+| ORM | Prisma 5 |
+| Base de datos | PostgreSQL 16 (multi-tenant con RLS) |
+| Cache / Colas | Redis 7 + BullMQ (Fase 2) |
+| Analytics | ClickHouse (Fase 3) |
+| Búsqueda semántica | pgvector (Fase 3) |
+| Frontend | Next.js 15 + React 19 |
+| Estilos | Tailwind CSS 3 |
+| Estado | Zustand + TanStack Query (Fase 2) |
+| AI | Anthropic Claude API (Fase 2+) |
+| Email | Nodemailer + Resend (prod) |
+| Comunicaciones | Twilio / Meta API (Fase 2) |
+| Auth | JWT (access + refresh) |
+| Deploy inicial | Railway / Render |
+| CI/CD | GitHub Actions |
