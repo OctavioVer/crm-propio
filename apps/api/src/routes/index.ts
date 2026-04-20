@@ -4,6 +4,7 @@ import { contactRoutes } from './contacts'
 import { dealRoutes } from './deals'
 import { pipelineRoutes } from './pipelines'
 import { userRoutes } from './users'
+import { activityRoutes } from './activities'
 
 export const apiRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.register(authRoutes, { prefix: '/auth' })
@@ -11,4 +12,5 @@ export const apiRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.register(dealRoutes, { prefix: '/deals' })
   fastify.register(pipelineRoutes, { prefix: '/pipelines' })
   fastify.register(userRoutes, { prefix: '/users' })
+  fastify.register(activityRoutes, { prefix: '/activities' })
 }

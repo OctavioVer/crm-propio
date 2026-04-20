@@ -35,13 +35,13 @@ export const dealRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/', async (request) => {
     const params = listSchema.parse(request.query)
-    return service.list(request.user.tenantId, params)
+    return service.list(request.authUser.tenantId, params)
   })
 
   fastify.get('/kanban/:pipelineId', async (request, reply) => {
     const { pipelineId } = request.params as { pipelineId: string }
     try {
-      return await service.kanban(request.user.tenantId, pipelineId)
+      return await service.kanban(request.authUser.tenantId, pipelineId)
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Pipeline no encontrado' })
     }
@@ -50,7 +50,7 @@ export const dealRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string }
     try {
-      return await service.getById(request.user.tenantId, id)
+      return await service.getById(request.authUser.tenantId, id)
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Deal no encontrado' })
     }
@@ -59,7 +59,7 @@ export const dealRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/', async (request, reply) => {
     const body = createSchema.parse(request.body)
     try {
-      const deal = await service.create(request.user.tenantId, request.user.id, body)
+      const deal = await service.create(request.authUser.tenantId, request.authUser.id, body)
       return reply.status(201).send(deal)
     } catch (err: any) {
       return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: err.message })
@@ -70,7 +70,7 @@ export const dealRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = request.params as { id: string }
     const body = createSchema.omit({ pipelineId: true }).partial().parse(request.body)
     try {
-      return await service.update(request.user.tenantId, id, body)
+      return await service.update(request.authUser.tenantId, id, body)
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Deal no encontrado' })
     }
@@ -80,7 +80,7 @@ export const dealRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = request.params as { id: string }
     const { stage } = stageSchema.parse(request.body)
     try {
-      return await service.moveStage(request.user.tenantId, id, stage)
+      return await service.moveStage(request.authUser.tenantId, id, stage)
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Deal no encontrado' })
     }
@@ -89,7 +89,7 @@ export const dealRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete('/:id', async (request, reply) => {
     const { id } = request.params as { id: string }
     try {
-      await service.delete(request.user.tenantId, id)
+      await service.delete(request.authUser.tenantId, id)
       return reply.status(204).send()
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Deal no encontrado' })

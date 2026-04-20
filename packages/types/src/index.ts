@@ -155,6 +155,38 @@ export interface CreateDealInput {
 
 export type UpdateDealInput = Partial<Omit<CreateDealInput, 'pipelineId'>>
 
+// ─── ACTIVITY ─────────────────────────────────────────────────────────────────
+
+export interface Activity {
+  id: string
+  tenantId: string
+  type: ActivityType
+  contactId?: string
+  dealId?: string
+  userId?: string
+  title?: string
+  body?: string
+  outcome?: string
+  scheduledAt?: string
+  completedAt?: string
+  dueAt?: string
+  createdAt: string
+  updatedAt: string
+  user?: { name: string }
+}
+
+export interface CreateActivityInput {
+  type: ActivityType
+  contactId?: string
+  dealId?: string
+  title?: string
+  body?: string
+  outcome?: string
+  scheduledAt?: string
+  completedAt?: string
+  dueAt?: string
+}
+
 // ─── USER ─────────────────────────────────────────────────────────────────────
 
 export interface User {

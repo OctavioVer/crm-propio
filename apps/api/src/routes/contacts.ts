@@ -30,13 +30,13 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/', async (request) => {
     const params = listSchema.parse(request.query)
-    return service.list(request.user.tenantId, params)
+    return service.list(request.authUser.tenantId, params)
   })
 
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string }
     try {
-      return await service.getById(request.user.tenantId, id)
+      return await service.getById(request.authUser.tenantId, id)
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Contacto no encontrado' })
     }
@@ -44,7 +44,7 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.post('/', async (request, reply) => {
     const body = createSchema.parse(request.body)
-    const contact = await service.create(request.user.tenantId, request.user.id, body)
+    const contact = await service.create(request.authUser.tenantId, request.authUser.id, body)
     return reply.status(201).send(contact)
   })
 
@@ -52,7 +52,7 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = request.params as { id: string }
     const body = createSchema.partial().parse(request.body)
     try {
-      return await service.update(request.user.tenantId, id, body)
+      return await service.update(request.authUser.tenantId, id, body)
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Contacto no encontrado' })
     }
@@ -61,7 +61,7 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.delete('/:id', async (request, reply) => {
     const { id } = request.params as { id: string }
     try {
-      await service.delete(request.user.tenantId, id)
+      await service.delete(request.authUser.tenantId, id)
       return reply.status(204).send()
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Contacto no encontrado' })

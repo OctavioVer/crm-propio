@@ -6,12 +6,18 @@ import { api } from '@/lib/api'
 import { formatDate, getInitials } from '@/lib/utils'
 import { Plus, Search, Filter, Mail, Phone, MoreHorizontal } from 'lucide-react'
 import type { Contact, PaginatedResponse } from '@crm/types'
+import { Modal } from '@/components/ui/modal'
+import { ContactForm } from '@/components/contacts/contact-form'
+import { useRouter } from 'next/navigation'
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [meta, setMeta] = useState({ total: 0, page: 1, totalPages: 1 })
   const [search, setSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+  const router = useRouter()
 
   const fetchContacts = useCallback(async (q = '', page = 1) => {
     setLoading(true)
@@ -32,6 +38,22 @@ export default function ContactsPage() {
     return () => clearTimeout(timeout)
   }, [search, fetchContacts])
 
+  const toggleSelectAll = () => {
+    if (selectedIds.length === contacts.length) {
+      setSelectedIds([])
+    } else {
+      setSelectedIds(contacts.map(c => c.id))
+    }
+  }
+
+  const toggleSelectOne = (id: string) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(i => i !== id))
+    } else {
+      setSelectedIds([...selectedIds, id])
+    }
+  }
+
   return (
     <div>
       <Header title="Contactos" />
@@ -49,7 +71,7 @@ export default function ContactsPage() {
           </div>
           <div className="flex items-center gap-2">
             <button className="btn-secondary"><Filter size={16} /> Filtros</button>
-            <button className="btn-primary"><Plus size={16} /> Nuevo contacto</button>
+            <button onClick={() => setIsModalOpen(true)} className="btn-primary"><Plus size={16} /> Nuevo contacto</button>
           </div>
         </div>
 
@@ -58,6 +80,14 @@ export default function ContactsPage() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
+                  <th className="w-10 px-4 py-3">
+                    <input 
+                      type="checkbox" 
+                      className="rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                      checked={selectedIds.length === contacts.length && contacts.length > 0}
+                      onChange={toggleSelectAll}
+                    />
+                  </th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500">Nombre</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 hidden md:table-cell">Email</th>
                   <th className="text-left px-4 py-3 font-medium text-gray-500 hidden lg:table-cell">Teléfono</th>
@@ -69,10 +99,10 @@ export default function ContactsPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">Cargando...</td></tr>
+                  <tr><td colSpan={8} className="px-4 py-12 text-center text-gray-400">Cargando...</td></tr>
                 ) : contacts.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
+                    <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
                       {search ? 'Sin resultados' : 'Sin contactos aún. ¡Crea el primero!'}
                     </td>
                   </tr>
@@ -81,11 +111,24 @@ export default function ContactsPage() {
                     const fullName = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.companyName || 'Sin nombre'
                     const primaryEmail = contact.emails?.find((e) => e.isPrimary)?.email ?? contact.emails?.[0]?.email
                     const primaryPhone = contact.phones?.[0]?.phone
+                    const isSelected = selectedIds.includes(contact.id)
                     return (
-                      <tr key={contact.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors">
+                      <tr
+                        key={contact.id}
+                        className={`border-b border-gray-50 hover:bg-gray-50 transition-colors cursor-pointer group ${isSelected ? 'bg-brand-50/30' : ''}`}
+                        onClick={() => router.push(`/dashboard/contacts/${contact.id}`)}
+                      >
+                        <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <input 
+                            type="checkbox" 
+                            className="rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
+                            checked={isSelected}
+                            onChange={() => toggleSelectOne(contact.id)}
+                          />
+                        </td>
                         <td className="px-4 py-3">
                           <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0">
+                            <div className="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-xs font-semibold flex-shrink-0 group-hover:bg-brand-200 transition-colors">
                               {getInitials(fullName)}
                             </div>
                             <div>
@@ -98,16 +141,20 @@ export default function ContactsPage() {
                         </td>
                         <td className="px-4 py-3 hidden md:table-cell">
                           {primaryEmail ? (
-                            <a href={`mailto:${primaryEmail}`} className="flex items-center gap-1.5 text-gray-600 hover:text-brand-600">
+                            <span className="flex items-center gap-1.5 text-gray-600">
                               <Mail size={13} />{primaryEmail}
-                            </a>
+                            </span>
                           ) : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell text-gray-600">
                           {primaryPhone ? <span className="flex items-center gap-1.5"><Phone size={13} />{primaryPhone}</span> : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="px-4 py-3 hidden xl:table-cell">
-                          {contact.stage ? <span className="badge bg-gray-100 text-gray-700">{contact.stage}</span> : <span className="text-gray-300">—</span>}
+                          {contact.stage ? (
+                            <span className="badge bg-brand-50 text-brand-700 border border-brand-100">
+                              {contact.stage}
+                            </span>
+                          ) : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="px-4 py-3 hidden xl:table-cell">
                           <div className="flex items-center gap-2">
@@ -118,8 +165,10 @@ export default function ContactsPage() {
                           </div>
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell text-gray-500 text-xs">{formatDate(contact.createdAt)}</td>
-                        <td className="px-4 py-3 text-right">
-                          <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"><MoreHorizontal size={16} /></button>
+                        <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                          <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
+                            <MoreHorizontal size={16} />
+                          </button>
                         </td>
                       </tr>
                     )
@@ -140,6 +189,21 @@ export default function ContactsPage() {
           )}
         </div>
       </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Crear nuevo contacto"
+        maxWidth="max-w-xl"
+      >
+        <ContactForm 
+          onCancel={() => setIsModalOpen(false)}
+          onSuccess={() => {
+            setIsModalOpen(false)
+            fetchContacts(search)
+          }}
+        />
+      </Modal>
     </div>
   )
 }

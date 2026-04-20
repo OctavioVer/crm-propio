@@ -85,6 +85,6 @@ export const authRoutes: FastifyPluginAsync = async (fastify) => {
   })
 
   fastify.get('/me', { preHandler: [fastify.authenticate] }, async (request) => {
-    return request.user
+    return request.authUser
   })
 }

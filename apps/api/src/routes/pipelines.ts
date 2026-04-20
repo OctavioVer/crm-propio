@@ -20,7 +20,7 @@ export const pipelineRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/', async (request) => {
     const pipelines = await prisma.pipeline.findMany({
-      where: { tenantId: request.user.tenantId },
+      where: { tenantId: request.authUser.tenantId },
       orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }],
     })
     return pipelines.map((p) => ({ ...p, stages: p.stagesJson }))
@@ -29,7 +29,7 @@ export const pipelineRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string }
     const pipeline = await prisma.pipeline.findFirst({
-      where: { id, tenantId: request.user.tenantId },
+      where: { id, tenantId: request.authUser.tenantId },
     })
     if (!pipeline) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Pipeline no encontrado' })
     return { ...pipeline, stages: pipeline.stagesJson }
@@ -39,7 +39,7 @@ export const pipelineRoutes: FastifyPluginAsync = async (fastify) => {
     const body = createSchema.parse(request.body)
     const pipeline = await prisma.pipeline.create({
       data: {
-        tenantId: request.user.tenantId,
+        tenantId: request.authUser.tenantId,
         name: body.name,
         stagesJson: body.stages,
         isDefault: body.isDefault ?? false,
@@ -51,7 +51,7 @@ export const pipelineRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.patch('/:id', { preHandler: [fastify.requireRole(['ADMIN', 'MANAGER'])] }, async (request, reply) => {
     const { id } = request.params as { id: string }
     const body = createSchema.partial().parse(request.body)
-    const existing = await prisma.pipeline.findFirst({ where: { id, tenantId: request.user.tenantId } })
+    const existing = await prisma.pipeline.findFirst({ where: { id, tenantId: request.authUser.tenantId } })
     if (!existing) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Pipeline no encontrado' })
     const updated = await prisma.pipeline.update({
       where: { id },
@@ -66,7 +66,7 @@ export const pipelineRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.delete('/:id', { preHandler: [fastify.requireRole(['ADMIN'])] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    const existing = await prisma.pipeline.findFirst({ where: { id, tenantId: request.user.tenantId } })
+    const existing = await prisma.pipeline.findFirst({ where: { id, tenantId: request.authUser.tenantId } })
     if (!existing) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Pipeline no encontrado' })
     if (existing.isDefault) return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'No puedes eliminar el pipeline por defecto' })
     await prisma.pipeline.delete({ where: { id } })

@@ -10,7 +10,7 @@ services:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./packages/database/prisma/setup-rls.sql:/docker-entrypoint-initdb.d/01-rls.sql
+#      - ./packages/database/prisma/setup-rls.sql:/docker-entrypoint-initdb.d/01-rls.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s

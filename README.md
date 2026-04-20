@@ -95,11 +95,11 @@ npm run dev
 ### 🔨 MVP Core — Semanas 3–8
 
 **Contactos**
-- [ ] Modal "Nuevo contacto" con formulario completo
-- [ ] Página de detalle del contacto (`/dashboard/contacts/:id`)
+- [x] Modal "Nuevo contacto" con formulario completo
+- [x] Página de detalle del contacto (`/dashboard/contacts/:id`)
 - [ ] Timeline 360° con actividades
-- [ ] Edición inline de campos
-- [ ] Tags y notas
+- [x] Edición inline de campos
+- [x] Tags y notas
 
 **Deals**
 - [ ] Modal "Nuevo deal"
@@ -109,7 +109,7 @@ npm run dev
 - [ ] Vinculación deal ↔ contacto
 
 **Actividades**
-- [ ] Endpoint `POST /api/activities` y `GET /api/contacts/:id/activities`
+- [x] Endpoint `POST /api/activities` y `GET /api/contacts/:id/activities`
 - [ ] Feed de actividades en detalle de contacto y deal
 - [ ] Crear nota, llamada, reunión, tarea desde el detalle
 

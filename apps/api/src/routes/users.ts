@@ -33,7 +33,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/', async (request) => {
     return prisma.user.findMany({
-      where: { tenantId: request.user.tenantId },
+      where: { tenantId: request.authUser.tenantId },
       select: userSelect,
       orderBy: { createdAt: 'asc' },
     })
@@ -41,7 +41,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.get('/me', async (request) => {
     return prisma.user.findUnique({
-      where: { id: request.user.id },
+      where: { id: request.authUser.id },
       select: userSelect,
     })
   })
@@ -49,7 +49,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.get('/:id', async (request, reply) => {
     const { id } = request.params as { id: string }
     const user = await prisma.user.findFirst({
-      where: { id, tenantId: request.user.tenantId },
+      where: { id, tenantId: request.authUser.tenantId },
       select: userSelect,
     })
     if (!user) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Usuario no encontrado' })
@@ -59,7 +59,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/', { preHandler: [fastify.requireRole(['ADMIN'])] }, async (request, reply) => {
     const body = inviteSchema.parse(request.body)
     const existing = await prisma.user.findUnique({
-      where: { tenantId_email: { tenantId: request.user.tenantId, email: body.email } },
+      where: { tenantId_email: { tenantId: request.authUser.tenantId, email: body.email } },
     })
     if (existing) return reply.status(409).send({ statusCode: 409, error: 'Conflict', message: 'El usuario ya existe en este tenant' })
 
@@ -67,7 +67,7 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
 
     const user = await prisma.user.create({
       data: {
-        tenantId: request.user.tenantId,
+        tenantId: request.authUser.tenantId,
         email: body.email,
         name: body.name,
         role: body.role,
@@ -84,11 +84,11 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
     const body = updateSchema.parse(request.body)
 
     // Users can update themselves; admins can update anyone
-    if (id !== request.user.id && request.user.role !== 'ADMIN') {
+    if (id !== request.authUser.id && request.authUser.role !== 'ADMIN') {
       return reply.status(403).send({ statusCode: 403, error: 'Forbidden', message: 'Permisos insuficientes' })
     }
 
-    const existing = await prisma.user.findFirst({ where: { id, tenantId: request.user.tenantId } })
+    const existing = await prisma.user.findFirst({ where: { id, tenantId: request.authUser.tenantId } })
     if (!existing) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Usuario no encontrado' })
 
     return prisma.user.update({ where: { id }, data: body, select: userSelect })
@@ -96,9 +96,9 @@ export const userRoutes: FastifyPluginAsync = async (fastify) => {
 
   fastify.delete('/:id', { preHandler: [fastify.requireRole(['ADMIN'])] }, async (request, reply) => {
     const { id } = request.params as { id: string }
-    if (id === request.user.id) return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'No puedes eliminarte a ti mismo' })
+    if (id === request.authUser.id) return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'No puedes eliminarte a ti mismo' })
 
-    const existing = await prisma.user.findFirst({ where: { id, tenantId: request.user.tenantId } })
+    const existing = await prisma.user.findFirst({ where: { id, tenantId: request.authUser.tenantId } })
     if (!existing) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Usuario no encontrado' })
 
     await prisma.user.delete({ where: { id } })
