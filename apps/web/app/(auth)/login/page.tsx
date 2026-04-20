@@ -28,7 +28,7 @@ export default function LoginPage() {
     setError(null)
     try {
       await login(data.email, data.password, data.tenantSlug)
-      router.push('/dashboard')
+      router.push('/dashboard/overview')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Error al iniciar sesión')
     }

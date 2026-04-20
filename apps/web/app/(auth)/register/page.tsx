@@ -30,7 +30,7 @@ export default function RegisterPage() {
     setError(null)
     try {
       await registerUser(data)
-      router.push('/dashboard')
+      router.push('/dashboard/overview')
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Error al registrarse')
     }

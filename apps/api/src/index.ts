@@ -1,4 +1,3 @@
-import 'dotenv/config'
 import { buildApp } from './app'
 import { config } from './config'
 import { prisma } from '@crm/database'

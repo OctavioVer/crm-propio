@@ -22,7 +22,6 @@ export default function ContactsPage() {
       setContacts(res.data)
       setMeta({ total: res.meta.total, page: res.meta.page, totalPages: res.meta.totalPages })
     } catch {
-      // error handled by api client
     } finally {
       setLoading(false)
     }
@@ -37,7 +36,6 @@ export default function ContactsPage() {
     <div>
       <Header title="Contactos" />
       <div className="p-6">
-        {/* Toolbar */}
         <div className="flex items-center justify-between mb-5 gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -50,18 +48,11 @@ export default function ContactsPage() {
             />
           </div>
           <div className="flex items-center gap-2">
-            <button className="btn-secondary">
-              <Filter size={16} />
-              Filtros
-            </button>
-            <button className="btn-primary">
-              <Plus size={16} />
-              Nuevo contacto
-            </button>
+            <button className="btn-secondary"><Filter size={16} /> Filtros</button>
+            <button className="btn-primary"><Plus size={16} /> Nuevo contacto</button>
           </div>
         </div>
 
-        {/* Table */}
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -78,13 +69,11 @@ export default function ContactsPage() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">Cargando...</td>
-                  </tr>
+                  <tr><td colSpan={7} className="px-4 py-12 text-center text-gray-400">Cargando...</td></tr>
                 ) : contacts.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
-                      {search ? 'Sin resultados para tu búsqueda' : 'Sin contactos aún. ¡Crea el primero!'}
+                      {search ? 'Sin resultados' : 'Sin contactos aún. ¡Crea el primero!'}
                     </td>
                   </tr>
                 ) : (
@@ -110,48 +99,27 @@ export default function ContactsPage() {
                         <td className="px-4 py-3 hidden md:table-cell">
                           {primaryEmail ? (
                             <a href={`mailto:${primaryEmail}`} className="flex items-center gap-1.5 text-gray-600 hover:text-brand-600">
-                              <Mail size={13} />
-                              {primaryEmail}
+                              <Mail size={13} />{primaryEmail}
                             </a>
-                          ) : (
-                            <span className="text-gray-300">—</span>
-                          )}
+                          ) : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell text-gray-600">
-                          {primaryPhone ? (
-                            <span className="flex items-center gap-1.5">
-                              <Phone size={13} />
-                              {primaryPhone}
-                            </span>
-                          ) : (
-                            <span className="text-gray-300">—</span>
-                          )}
+                          {primaryPhone ? <span className="flex items-center gap-1.5"><Phone size={13} />{primaryPhone}</span> : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="px-4 py-3 hidden xl:table-cell">
-                          {contact.stage ? (
-                            <span className="badge bg-gray-100 text-gray-700">{contact.stage}</span>
-                          ) : (
-                            <span className="text-gray-300">—</span>
-                          )}
+                          {contact.stage ? <span className="badge bg-gray-100 text-gray-700">{contact.stage}</span> : <span className="text-gray-300">—</span>}
                         </td>
                         <td className="px-4 py-3 hidden xl:table-cell">
                           <div className="flex items-center gap-2">
                             <div className="flex-1 h-1.5 bg-gray-100 rounded-full max-w-16">
-                              <div
-                                className="h-1.5 bg-brand-500 rounded-full"
-                                style={{ width: `${contact.score}%` }}
-                              />
+                              <div className="h-1.5 bg-brand-500 rounded-full" style={{ width: `${contact.score}%` }} />
                             </div>
                             <span className="text-xs text-gray-500">{contact.score}</span>
                           </div>
                         </td>
-                        <td className="px-4 py-3 hidden lg:table-cell text-gray-500 text-xs">
-                          {formatDate(contact.createdAt)}
-                        </td>
+                        <td className="px-4 py-3 hidden lg:table-cell text-gray-500 text-xs">{formatDate(contact.createdAt)}</td>
                         <td className="px-4 py-3 text-right">
-                          <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md">
-                            <MoreHorizontal size={16} />
-                          </button>
+                          <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md"><MoreHorizontal size={16} /></button>
                         </td>
                       </tr>
                     )
@@ -160,29 +128,13 @@ export default function ContactsPage() {
               </tbody>
             </table>
           </div>
-
-          {/* Pagination */}
           {meta.totalPages > 1 && (
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
               <p className="text-sm text-gray-500">{meta.total} contactos</p>
               <div className="flex items-center gap-2">
-                <button
-                  disabled={meta.page === 1}
-                  onClick={() => fetchContacts(search, meta.page - 1)}
-                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
-                >
-                  Anterior
-                </button>
-                <span className="text-sm text-gray-600">
-                  {meta.page} / {meta.totalPages}
-                </span>
-                <button
-                  disabled={meta.page === meta.totalPages}
-                  onClick={() => fetchContacts(search, meta.page + 1)}
-                  className="btn-secondary py-1 px-3 text-xs disabled:opacity-40"
-                >
-                  Siguiente
-                </button>
+                <button disabled={meta.page === 1} onClick={() => fetchContacts(search, meta.page - 1)} className="btn-secondary py-1 px-3 text-xs disabled:opacity-40">Anterior</button>
+                <span className="text-sm text-gray-600">{meta.page} / {meta.totalPages}</span>
+                <button disabled={meta.page === meta.totalPages} onClick={() => fetchContacts(search, meta.page + 1)} className="btn-secondary py-1 px-3 text-xs disabled:opacity-40">Siguiente</button>
               </div>
             </div>
           )}

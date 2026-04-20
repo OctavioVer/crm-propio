@@ -1,18 +1,14 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-const PUBLIC_PATHS = ['/login', '/register', '/auth']
-
+// Auth is handled client-side in (dashboard)/layout.tsx via localStorage.
+// Middleware only handles static redirects.
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  const isPublic = PUBLIC_PATHS.some((p) => pathname.startsWith(p))
-  if (isPublic) return NextResponse.next()
-
-  // Check for token in cookie (for SSR auth guard)
-  const token = request.cookies.get('crm_access')?.value
-  if (!token && !pathname.startsWith('/api')) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  // Redirect root to dashboard
+  if (pathname === '/') {
+    return NextResponse.redirect(new URL('/dashboard/overview', request.url))
   }
 
   return NextResponse.next()

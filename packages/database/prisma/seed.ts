@@ -1,12 +1,10 @@
 import { PrismaClient } from '@prisma/client'
-import { createHash, randomBytes } from 'crypto'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
-function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString('hex')
-  const hash = createHash('sha256').update(password + salt).digest('hex')
-  return `${salt}:${hash}`
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12)
 }
 
 async function main() {
@@ -23,27 +21,29 @@ async function main() {
     },
   })
 
+  const adminHash = await hashPassword('admin123')
   const admin = await prisma.user.upsert({
     where: { tenantId_email: { tenantId: tenant.id, email: 'admin@demo.com' } },
-    update: {},
+    update: { passwordHash: adminHash },
     create: {
       tenantId: tenant.id,
       email: 'admin@demo.com',
       name: 'Admin Demo',
-      passwordHash: hashPassword('admin123'),
+      passwordHash: adminHash,
       role: 'ADMIN',
       emailVerified: true,
     },
   })
 
+  const sellerHash = await hashPassword('seller123')
   const seller = await prisma.user.upsert({
     where: { tenantId_email: { tenantId: tenant.id, email: 'seller@demo.com' } },
-    update: {},
+    update: { passwordHash: sellerHash },
     create: {
       tenantId: tenant.id,
       email: 'seller@demo.com',
       name: 'Vendedor Demo',
-      passwordHash: hashPassword('seller123'),
+      passwordHash: sellerHash,
       role: 'SELLER',
       emailVerified: true,
     },
