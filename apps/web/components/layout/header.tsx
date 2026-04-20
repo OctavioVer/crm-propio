@@ -1,15 +1,10 @@
 'use client'
 
 import { Search, Bell } from 'lucide-react'
-import { getStoredUser, getInitials } from '@/lib/utils'
+import { getInitials } from '@/lib/utils'
+import { getStoredUser } from '@/lib/auth'
 import { useState, useEffect } from 'react'
 import type { AuthUser } from '@crm/types'
-
-// Re-export for convenience
-function getInitialsFromUtils(name?: string | null) {
-  if (!name) return '?'
-  return name.split(' ').slice(0, 2).map((n) => n[0]).join('').toUpperCase()
-}
 
 interface HeaderProps {
   title: string
@@ -43,7 +38,7 @@ export function Header({ title }: HeaderProps) {
 
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 bg-brand-100 text-brand-700 rounded-full flex items-center justify-center text-sm font-semibold">
-            {getInitialsFromUtils(user?.name ?? user?.email)}
+            {getInitials(user?.name ?? user?.email)}
           </div>
           <div className="hidden md:block">
             <p className="text-sm font-medium text-gray-900 leading-none">{user?.name ?? 'Usuario'}</p>
