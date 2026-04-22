@@ -2,7 +2,7 @@
 
 import { Header } from '@/components/layout/header'
 import { getStoredUser } from '@/lib/auth'
-import { User, Users, Bell, Shield, ChevronRight } from 'lucide-react'
+import { User, Users, Bell, Shield, ChevronRight, BarChart2 } from 'lucide-react'
 import Link from 'next/link'
 
 export default function SettingsPage() {
@@ -24,6 +24,14 @@ export default function SettingsPage() {
       description: 'Invitar usuarios, gestionar roles y permisos',
       href: '/dashboard/settings/users',
       color: 'bg-purple-50 text-purple-600',
+      available: isAdmin,
+    },
+    {
+      icon: BarChart2,
+      title: 'Equipos de venta',
+      description: 'Crear equipos, asignar miembros y managers',
+      href: '/dashboard/settings/teams',
+      color: 'bg-green-50 text-green-600',
       available: isAdmin,
     },
     {

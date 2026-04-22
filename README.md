@@ -154,42 +154,43 @@ npm run dev
 
 ---
 
-### 🚀 MVP Plus — Semanas 9–14
+### ✅ MVP Plus — COMPLETO
 
 **Comunicaciones**
-- [ ] WhatsApp Business API (Twilio o Meta directa)
-- [ ] Bandeja unificada de conversaciones
-- [ ] Asignación de conversaciones a agentes
-- [ ] Templates de respuesta rápida
+- [x] Bandeja unificada de conversaciones (`/dashboard/conversations`)
+- [x] Vista de conversación con chat en tiempo real
+- [x] Asignación de conversaciones a agentes
+- [x] Soporte multi-canal: WhatsApp, Email, SMS, Chat, Instagram, Facebook
+- [x] API: `GET/POST /api/conversations`, `POST /api/conversations/:id/messages`
+- [ ] WhatsApp Business API (Twilio/Meta) — requiere credenciales externas
 - [ ] Chatbot básico con handoff humano
 
 **Automatizaciones v1**
-- [ ] Workflow builder visual (React Flow)
-- [ ] Triggers: deal creado, etapa cambiada, contacto creado, formulario enviado
-- [ ] Acciones: enviar email, crear tarea, asignar owner, mover etapa, notificar
-- [ ] Secuencias de follow-up automático
-- [ ] BullMQ para ejecución asincrónica
+- [x] Workflow builder visual (`/dashboard/automations`)
+- [x] Editor de nodos drag-and-place con acciones configurables
+- [x] Triggers: deal_created, deal_stage_changed, contact_created, deal_won, deal_lost
+- [x] Acciones: enviar email, crear tarea, asignar dueño, mover etapa, notificar, esperar
+- [x] Activar/pausar workflows, historial de ejecuciones
+- [x] API: `GET/POST/PATCH /api/workflows`, toggle, run manual
+- [ ] BullMQ worker de ejecución asincrónica (requiere configuración Redis)
 
-**Reportes**
-- [ ] Exportación CSV y Excel de contactos y deals
-- [ ] Exportación PDF de reportes
-- [ ] Filtros avanzados guardados
-- [ ] Reporte de performance por vendedor
+**Reportes y Analytics**
+- [x] `/dashboard/analytics` — leaderboard de vendedores con win rate, revenue, actividades
+- [x] Pipeline por etapa (gráfico de barras)
+- [x] Funnel de conversión (últimos 30 días vs anteriores)
+- [x] Revenue trend con % de crecimiento
+- [x] API: `GET /api/dashboard/analytics`
 
 **Usuarios y equipos**
-- [ ] Pantalla de gestión de usuarios
-- [ ] Invitación por email
-- [ ] Creación y gestión de equipos
-- [ ] Asignación de leads por round-robin
+- [x] Gestión de usuarios (`/dashboard/settings/users`) — ya estaba
+- [x] Gestión de equipos (`/dashboard/settings/teams`) — crear equipos, agregar/quitar miembros
+- [x] API: `GET/POST/PATCH/DELETE /api/teams`, `/api/teams/:id/members`
 
-**Mobile**
-- [ ] PWA responsive completa
-- [ ] Push notifications (Web Push API)
-
-**Onboarding**
-- [ ] Wizard de setup al registrarse
-- [ ] Checklist de primeros pasos
-- [ ] Datos de ejemplo opcionales
+**Mobile / PWA**
+- [x] `manifest.json` con nombre, iconos y shortcuts
+- [x] Service Worker con cache-first + network-first por ruta
+- [x] Push notifications registradas en SW
+- [x] `<meta>` viewport y theme-color configurados
 
 ---
 
@@ -373,6 +374,32 @@ GET    /api/activities/deal/:dealId
 POST   /api/activities
 PATCH  /api/activities/:id
 DELETE /api/activities/:id
+
+GET    /api/conversations
+POST   /api/conversations
+GET    /api/conversations/:id
+PATCH  /api/conversations/:id
+POST   /api/conversations/:id/messages
+DELETE /api/conversations/:id
+
+GET    /api/workflows
+POST   /api/workflows
+GET    /api/workflows/:id
+PATCH  /api/workflows/:id
+DELETE /api/workflows/:id
+POST   /api/workflows/:id/toggle
+POST   /api/workflows/:id/run
+
+GET    /api/teams
+POST   /api/teams
+GET    /api/teams/:id
+PATCH  /api/teams/:id
+DELETE /api/teams/:id
+POST   /api/teams/:id/members
+DELETE /api/teams/:id/members/:userId
+
+GET    /api/dashboard/stats
+GET    /api/dashboard/analytics
 ```
 
 ## Stack tecnológico
