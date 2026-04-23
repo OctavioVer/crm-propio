@@ -2,6 +2,10 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { ContactService } from '../services/contact.service'
 import { AiService } from '../services/ai.service'
+import { triggerWorkflows } from '../workers/workflow.worker'
+import { mailer } from '../lib/mailer'
+import { prisma } from '@crm/database'
+import { config } from '../config'
 
 const createSchema = z.object({
   type: z.enum(['PERSON', 'COMPANY']).optional(),
@@ -22,6 +26,12 @@ const listSchema = z.object({
   search: z.string().optional(),
   sortBy: z.string().optional(),
   sortOrder: z.enum(['asc', 'desc']).optional(),
+  stage: z.string().optional(),
+  type: z.enum(['PERSON', 'COMPANY']).optional(),
+  ownerId: z.string().optional(),
+  tag: z.string().optional(),
+  scoreMin: z.coerce.number().min(0).max(100).optional(),
+  scoreMax: z.coerce.number().min(0).max(100).optional(),
 })
 
 export const contactRoutes: FastifyPluginAsync = async (fastify) => {
@@ -47,6 +57,7 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.post('/', async (request, reply) => {
     const body = createSchema.parse(request.body)
     const contact = await service.create(request.authUser.tenantId, request.authUser.id, body)
+    triggerWorkflows(request.authUser.tenantId, 'contact_created', 'contact', contact.id).catch(() => {})
     return reply.status(201).send(contact)
   })
 
@@ -101,5 +112,55 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Contacto no encontrado' })
     }
+  })
+
+  const emailSchema = z.object({
+    subject: z.string().min(1).max(200),
+    body: z.string().min(1),
+    to: z.string().email().optional(),
+  })
+
+  fastify.post('/:id/email', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { subject, body, to } = emailSchema.parse(request.body)
+
+    const contact = await prisma.contact.findFirst({
+      where: { id, tenantId: request.authUser.tenantId },
+      include: { emails: true },
+    })
+    if (!contact) return reply.status(404).send({ message: 'Contacto no encontrado' })
+
+    const recipient = to ?? contact.emails.find(e => e.isPrimary)?.email ?? contact.emails[0]?.email
+    if (!recipient) return reply.status(400).send({ message: 'El contacto no tiene email registrado' })
+
+    const senderUser = await prisma.user.findUnique({
+      where: { id: request.authUser.id },
+      select: { name: true, email: true },
+    })
+    const fromName = senderUser?.name ?? 'CRM'
+    const fromEmail = config.SMTP_FROM
+
+    await mailer.sendMail({
+      from: `${fromName} <${fromEmail.includes('<') ? fromEmail.match(/<(.+)>/)?.[1] ?? 'noreply@crm.local' : fromEmail}>`,
+      to: recipient,
+      subject,
+      text: body,
+      html: `<div style="font-family:sans-serif;max-width:600px;margin:0 auto"><p style="white-space:pre-wrap">${body.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p></div>`,
+    })
+
+    // Log the email as an activity
+    await prisma.activity.create({
+      data: {
+        tenantId: request.authUser.tenantId,
+        type: 'EMAIL',
+        contactId: id,
+        userId: request.authUser.id,
+        title: subject,
+        body: `Para: ${recipient}\n\n${body}`,
+        completedAt: new Date(),
+      },
+    })
+
+    return reply.status(201).send({ ok: true, sentTo: recipient })
   })
 }

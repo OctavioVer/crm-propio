@@ -9,6 +9,7 @@ import { dashboardRoutes } from './dashboard'
 import { conversationRoutes } from './conversations'
 import { workflowRoutes } from './workflows'
 import { teamRoutes } from './teams'
+import { notificationRoutes } from './notifications'
 
 export const apiRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.register(authRoutes, { prefix: '/auth' })
@@ -21,4 +22,5 @@ export const apiRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.register(conversationRoutes, { prefix: '/conversations' })
   fastify.register(workflowRoutes, { prefix: '/workflows' })
   fastify.register(teamRoutes, { prefix: '/teams' })
+  fastify.register(notificationRoutes, { prefix: '/notifications' })
 }

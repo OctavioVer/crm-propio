@@ -8,6 +8,8 @@ const transporter = nodemailer.createTransport({
   secure: config.SMTP_PORT === 465,
 })
 
+export const mailer = transporter
+
 export async function sendMagicLinkEmail(to: string, link: string, tenantName: string) {
   await transporter.sendMail({
     from: config.SMTP_FROM,

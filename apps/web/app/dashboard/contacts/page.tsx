@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Header } from '@/components/layout/header'
 import { api } from '@/lib/api'
 import { formatDate, getInitials } from '@/lib/utils'
-import { Plus, Search, Mail, Phone, MoreHorizontal, Download } from 'lucide-react'
+import { Plus, Search, Mail, Phone, MoreHorizontal, Download, SlidersHorizontal, X } from 'lucide-react'
 import type { Contact, PaginatedResponse } from '@crm/types'
 import { Modal } from '@/components/ui/modal'
 import { ContactForm } from '@/components/contacts/contact-form'
@@ -13,20 +13,39 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { downloadCsv } from '@/lib/csv'
 
+interface Filters {
+  stage: string
+  type: string
+  scoreMin: string
+  scoreMax: string
+  tag: string
+}
+
+const EMPTY_FILTERS: Filters = { stage: '', type: '', scoreMin: '', scoreMax: '', tag: '' }
+
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [meta, setMeta] = useState({ total: 0, page: 1, totalPages: 1 })
   const [search, setSearch] = useState('')
+  const [filters, setFilters] = useState<Filters>(EMPTY_FILTERS)
+  const [showFilters, setShowFilters] = useState(false)
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const router = useRouter()
 
-  const fetchContacts = useCallback(async (q = '', page = 1) => {
+  const activeFilterCount = Object.values(filters).filter(Boolean).length
+
+  const fetchContacts = useCallback(async (q = '', page = 1, f: Filters = EMPTY_FILTERS) => {
     setLoading(true)
     try {
       const params = new URLSearchParams({ page: String(page), limit: '25' })
       if (q) params.set('search', q)
+      if (f.stage) params.set('stage', f.stage)
+      if (f.type) params.set('type', f.type)
+      if (f.scoreMin) params.set('scoreMin', f.scoreMin)
+      if (f.scoreMax) params.set('scoreMax', f.scoreMax)
+      if (f.tag) params.set('tag', f.tag)
       const res = await api.get<PaginatedResponse<Contact>>(`/api/contacts?${params}`)
       setContacts(res.data)
       setMeta({ total: res.meta.total, page: res.meta.page, totalPages: res.meta.totalPages })
@@ -37,9 +56,9 @@ export default function ContactsPage() {
   }, [])
 
   useEffect(() => {
-    const timeout = setTimeout(() => fetchContacts(search), 300)
+    const timeout = setTimeout(() => fetchContacts(search, 1, filters), 300)
     return () => clearTimeout(timeout)
-  }, [search, fetchContacts])
+  }, [search, filters, fetchContacts])
 
   const toggleSelectAll = () => {
     if (selectedIds.length === contacts.length) {
@@ -77,11 +96,13 @@ export default function ContactsPage() {
     }
   }
 
+  const clearFilters = () => setFilters(EMPTY_FILTERS)
+
   return (
     <div>
       <Header title="Contactos" />
       <div className="p-6">
-        <div className="flex items-center justify-between mb-5 gap-4">
+        <div className="flex items-center justify-between mb-4 gap-4">
           <div className="relative flex-1 max-w-sm">
             <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
@@ -93,10 +114,57 @@ export default function ContactsPage() {
             />
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setShowFilters(v => !v)}
+              className={`btn-secondary flex items-center gap-1.5 ${activeFilterCount > 0 ? 'border-brand-300 text-brand-600 bg-brand-50' : ''}`}
+            >
+              <SlidersHorizontal size={15} />
+              Filtros
+              {activeFilterCount > 0 && (
+                <span className="w-4 h-4 rounded-full bg-brand-500 text-white text-[10px] font-bold flex items-center justify-center">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
             <button onClick={handleExport} className="btn-secondary"><Download size={16} /> Exportar</button>
             <button onClick={() => setIsModalOpen(true)} className="btn-primary"><Plus size={16} /> Nuevo contacto</button>
           </div>
         </div>
+
+        {/* Advanced filters panel */}
+        {showFilters && (
+          <div className="mb-4 p-4 bg-gray-50 border border-gray-200 rounded-xl flex flex-wrap gap-4 items-end">
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Tipo</label>
+              <select className="input text-sm py-1.5" value={filters.type} onChange={e => setFilters(f => ({ ...f, type: e.target.value }))}>
+                <option value="">Todos</option>
+                <option value="PERSON">Persona</option>
+                <option value="COMPANY">Empresa</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Etapa</label>
+              <input className="input text-sm py-1.5 w-32" placeholder="Ej: Lead" value={filters.stage} onChange={e => setFilters(f => ({ ...f, stage: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Tag</label>
+              <input className="input text-sm py-1.5 w-32" placeholder="Ej: VIP" value={filters.tag} onChange={e => setFilters(f => ({ ...f, tag: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Score mín</label>
+              <input type="number" min={0} max={100} className="input text-sm py-1.5 w-20" placeholder="0" value={filters.scoreMin} onChange={e => setFilters(f => ({ ...f, scoreMin: e.target.value }))} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Score máx</label>
+              <input type="number" min={0} max={100} className="input text-sm py-1.5 w-20" placeholder="100" value={filters.scoreMax} onChange={e => setFilters(f => ({ ...f, scoreMax: e.target.value }))} />
+            </div>
+            {activeFilterCount > 0 && (
+              <button onClick={clearFilters} className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700 mt-auto pb-1.5">
+                <X size={14} /> Limpiar
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
@@ -127,7 +195,7 @@ export default function ContactsPage() {
                 {contacts.length === 0 ? (
                   <tr>
                     <td colSpan={8} className="px-4 py-12 text-center text-gray-400">
-                      {search ? 'Sin resultados' : 'Sin contactos aún. ¡Crea el primero!'}
+                      {search || activeFilterCount > 0 ? 'Sin resultados para los filtros aplicados' : 'Sin contactos aún. ¡Crea el primero!'}
                     </td>
                   </tr>
                 ) : (
@@ -143,8 +211,8 @@ export default function ContactsPage() {
                         onClick={() => router.push(`/dashboard/contacts/${contact.id}`)}
                       >
                         <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             className="rounded border-gray-300 text-brand-600 focus:ring-brand-500 cursor-pointer"
                             checked={isSelected}
                             onChange={() => toggleSelectOne(contact.id)}
@@ -159,6 +227,13 @@ export default function ContactsPage() {
                               <p className="font-medium text-gray-900">{fullName}</p>
                               {contact.companyName && contact.type === 'PERSON' && (
                                 <p className="text-xs text-gray-500">{contact.companyName}</p>
+                              )}
+                              {contact.tags?.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-0.5">
+                                  {contact.tags.slice(0, 3).map(tag => (
+                                    <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-500 rounded-full">{tag}</span>
+                                  ))}
+                                </div>
                               )}
                             </div>
                           </div>
@@ -206,9 +281,9 @@ export default function ContactsPage() {
             <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50">
               <p className="text-sm text-gray-500">{meta.total} contactos</p>
               <div className="flex items-center gap-2">
-                <button disabled={meta.page === 1} onClick={() => fetchContacts(search, meta.page - 1)} className="btn-secondary py-1 px-3 text-xs disabled:opacity-40">Anterior</button>
+                <button disabled={meta.page === 1} onClick={() => fetchContacts(search, meta.page - 1, filters)} className="btn-secondary py-1 px-3 text-xs disabled:opacity-40">Anterior</button>
                 <span className="text-sm text-gray-600">{meta.page} / {meta.totalPages}</span>
-                <button disabled={meta.page === meta.totalPages} onClick={() => fetchContacts(search, meta.page + 1)} className="btn-secondary py-1 px-3 text-xs disabled:opacity-40">Siguiente</button>
+                <button disabled={meta.page === meta.totalPages} onClick={() => fetchContacts(search, meta.page + 1, filters)} className="btn-secondary py-1 px-3 text-xs disabled:opacity-40">Siguiente</button>
               </div>
             </div>
           )}
@@ -221,11 +296,11 @@ export default function ContactsPage() {
         title="Crear nuevo contacto"
         maxWidth="max-w-xl"
       >
-        <ContactForm 
+        <ContactForm
           onCancel={() => setIsModalOpen(false)}
           onSuccess={() => {
             setIsModalOpen(false)
-            fetchContacts(search)
+            fetchContacts(search, 1, filters)
             toast.success('Contacto creado')
           }}
         />

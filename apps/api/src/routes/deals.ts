@@ -1,6 +1,7 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { DealService } from '../services/deal.service'
+import { triggerWorkflows } from '../workers/workflow.worker'
 
 const createSchema = z.object({
   pipelineId: z.string(),
@@ -60,6 +61,8 @@ export const dealRoutes: FastifyPluginAsync = async (fastify) => {
     const body = createSchema.parse(request.body)
     try {
       const deal = await service.create(request.authUser.tenantId, request.authUser.id, body)
+      // Fire workflow triggers async (don't block response)
+      triggerWorkflows(request.authUser.tenantId, 'deal_created', 'deal', deal.id).catch(() => {})
       return reply.status(201).send(deal)
     } catch (err: any) {
       return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: err.message })
@@ -80,7 +83,10 @@ export const dealRoutes: FastifyPluginAsync = async (fastify) => {
     const { id } = request.params as { id: string }
     const { stage } = stageSchema.parse(request.body)
     try {
-      return await service.moveStage(request.authUser.tenantId, id, stage)
+      const deal = await service.moveStage(request.authUser.tenantId, id, stage)
+      const triggerType = deal.status === 'WON' ? 'deal_won' : deal.status === 'LOST' ? 'deal_lost' : 'deal_stage_changed'
+      triggerWorkflows(request.authUser.tenantId, triggerType, 'deal', id).catch(() => {})
+      return deal
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Deal no encontrado' })
     }

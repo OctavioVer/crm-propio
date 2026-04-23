@@ -12,6 +12,7 @@ import type { Contact, ActivityType } from '@crm/types'
 import { useRouter } from 'next/navigation'
 import { ActivityFeed } from '@/components/contacts/activity-feed'
 import { AddActivityModal } from '@/components/contacts/add-activity-modal'
+import { SendEmailModal } from '@/components/contacts/send-email-modal'
 import { AiPanel } from '@/components/contacts/ai-panel'
 import { Modal } from '@/components/ui/modal'
 import { ContactForm } from '@/components/contacts/contact-form'
@@ -26,6 +27,7 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
   const [activityRefreshKey, setActivityRefreshKey] = useState(0)
   const [activityModal, setActivityModal] = useState<{ open: boolean; type: ActivityType }>({ open: false, type: 'NOTE' })
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [emailModalOpen, setEmailModalOpen] = useState(false)
   const [scoringLoading, setScoringLoading] = useState(false)
   const router = useRouter()
 
@@ -129,7 +131,7 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
           <button onClick={() => openActivity('NOTE')} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
             <MessageSquare size={16} className="text-gray-400" /> Nota
           </button>
-          <button onClick={() => openActivity('EMAIL')} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
+          <button onClick={() => setEmailModalOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
             <Mail size={16} className="text-gray-400" /> Correo
           </button>
           <button onClick={() => openActivity('CALL')} className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
@@ -294,6 +296,17 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
           }}
         />
       </Modal>
+
+      <SendEmailModal
+        isOpen={emailModalOpen}
+        onClose={() => setEmailModalOpen(false)}
+        onSuccess={() => {
+          setEmailModalOpen(false)
+          setActivityRefreshKey(k => k + 1)
+        }}
+        contactId={id}
+        defaultTo={contact?.emails?.find(e => e.isPrimary)?.email ?? contact?.emails?.[0]?.email}
+      />
     </div>
   )
 }

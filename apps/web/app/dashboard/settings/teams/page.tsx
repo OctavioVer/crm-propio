@@ -44,10 +44,10 @@ export default function TeamsPage() {
   useEffect(() => {
     Promise.all([
       api.get<Team[]>('/api/teams'),
-      api.get<{ data: User[] }>('/api/users'),
+      api.get<User[]>('/api/users'),
     ]).then(([t, u]) => {
       setTeams(t)
-      setUsers(u.data)
+      setUsers(u)
     }).catch(() => toast.error('Error al cargar datos')).finally(() => setLoading(false))
   }, [])
 

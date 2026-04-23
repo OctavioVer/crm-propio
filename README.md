@@ -149,8 +149,10 @@ npm run dev
 **UX**
 - [x] Toast de confirmación en acciones (sonner)
 - [x] Empty states con call to action
-- [ ] Loading skeletons
-- [ ] Notificaciones in-app
+- [x] Loading skeletons en tablas, cards y kanban
+- [x] Notificaciones in-app — bell icon en header, panel con lista, mark as read, polling cada 30s
+- [x] Filtros avanzados en contactos (tipo, etapa, tag, score mín/máx)
+- [x] Enviar email real desde detalle de contacto (Nodemailer → Mailpit en dev)
 
 ---
 
@@ -172,7 +174,7 @@ npm run dev
 - [x] Acciones: enviar email, crear tarea, asignar dueño, mover etapa, notificar, esperar
 - [x] Activar/pausar workflows, historial de ejecuciones
 - [x] API: `GET/POST/PATCH /api/workflows`, toggle, run manual
-- [ ] BullMQ worker de ejecución asincrónica (requiere configuración Redis)
+- [x] BullMQ worker de ejecución asincrónica — `workflow.worker.ts` con Queue + Worker + triggers automáticos
 
 **Reportes y Analytics**
 - [x] `/dashboard/analytics` — leaderboard de vendedores con win rate, revenue, actividades
@@ -400,7 +402,21 @@ DELETE /api/teams/:id/members/:userId
 
 GET    /api/dashboard/stats
 GET    /api/dashboard/analytics
+
+GET    /api/notifications
+PATCH  /api/notifications/:id/read
+POST   /api/notifications/read-all
+DELETE /api/notifications/:id
+
+POST   /api/contacts/:id/email
 ```
+
+> **Nota:** Después de hacer `npm install`, corré la migración de DB para el modelo `Notification`:
+> ```bash
+> cd packages/database
+> npm run db:migrate:dev -- --name add_notifications
+> cd ../..
+> ```
 
 ## Stack tecnológico
 

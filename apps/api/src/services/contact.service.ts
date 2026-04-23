@@ -26,7 +26,8 @@ export class ContactService {
     const limit = Math.min(params.limit ?? 25, 100)
     const skip = (page - 1) * limit
 
-    const where = {
+    const p = params as any
+    const where: any = {
       tenantId,
       ...(params.search && {
         OR: [
@@ -36,6 +37,21 @@ export class ContactService {
           { emails: { some: { email: { contains: params.search, mode: 'insensitive' as const } } } },
         ],
       }),
+      ...(p.stage && { stage: p.stage }),
+      ...(p.type && { type: p.type }),
+      ...(p.ownerId && { ownerId: p.ownerId }),
+      ...(p.tag && { tags: { has: p.tag } }),
+      ...(p.scoreMin != null && { score: { gte: Number(p.scoreMin) } }),
+      ...(p.scoreMax != null && { score: { ...( p.scoreMin != null ? { gte: Number(p.scoreMin) } : {}), lte: Number(p.scoreMax) } }),
+    }
+
+    // Fix scoreMin+scoreMax combined
+    if (p.scoreMin != null && p.scoreMax != null) {
+      where.score = { gte: Number(p.scoreMin), lte: Number(p.scoreMax) }
+    } else if (p.scoreMin != null) {
+      where.score = { gte: Number(p.scoreMin) }
+    } else if (p.scoreMax != null) {
+      where.score = { lte: Number(p.scoreMax) }
     }
 
     const [data, total] = await Promise.all([
