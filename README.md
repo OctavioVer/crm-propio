@@ -196,44 +196,41 @@ npm run dev
 
 ---
 
-### ⚡ Fase 3 — Growth (Semanas 15–22)
+### ✅ Fase 3 — Growth (parcialmente completa)
 
-**Analytics avanzado**
+**Analytics**
+- [x] `/dashboard/analytics` — leaderboard, pipeline por etapa, funnel, revenue trend
+- [x] `GET /api/dashboard/analytics` — KPIs completos
 - [ ] ClickHouse para OLAP
-- [ ] Dashboard ejecutivo con KPIs en tiempo real
-- [ ] Métricas por vendedor, equipo, canal y campaña
-- [ ] Cohortes de clientes
-- [ ] CAC, LTV, ROAS
-- [ ] Atribución multitoque
-- [ ] Revenue analytics (MRR, ARR, churn)
+- [ ] Cohortes, CAC, LTV, ROAS
 - [ ] Report builder drag-and-drop
-- [ ] Reportes programados por email
-- [ ] Alertas por anomalías
-
-**Marketing**
-- [ ] Segmentación dinámica con filtros
-- [ ] Campañas de email (bulk)
-- [ ] A/B testing de emails
-- [ ] Formularios web embebibles
-- [ ] Landing pages builder básico
-- [ ] UTM tracking y atribución de origen
 
 **AI avanzado**
+- [x] Copiloto en lenguaje natural (`/dashboard/copilot`) — Claude Haiku, contexto real del CRM, sugerencias
+- [x] `POST /api/copilot/ask` — NL query con contexto completo
 - [ ] Búsqueda semántica (pgvector + embeddings)
-- [ ] Copiloto en lenguaje natural (NL → datos del CRM)
 - [ ] Scoring predictivo con ML
-- [ ] Detección de churn
-- [ ] Predicción de cierre de deals
 - [ ] Análisis de sentimiento en conversaciones
-- [ ] AI Governance: logs, human-in-the-loop, rollback
+
+**Marketing**
+- [x] Campañas de email bulk (`/dashboard/campaigns`) — segmentación, personalización {{nombre}}/{{empresa}}, preview
+- [x] `POST /api/campaigns/send` + `POST /api/campaigns/preview`
+- [x] Importación CSV de contactos — modal en /contacts, mapeo automático de columnas
+- [x] `POST /api/import/contacts` — hasta 1000 filas, deduplicación por email
+- [ ] A/B testing de emails
+- [ ] Formularios web embebibles
 
 **Integraciones**
-- [ ] Slack (notificaciones)
-- [ ] Calendly / Google Calendar
-- [ ] Stripe (pagos ligados a deals)
-- [ ] n8n / webhooks genéricos
-- [ ] Meta Ads / Facebook Lead Ads
-- [ ] Google Sheets export
+- [x] Webhooks salientes (`/dashboard/settings/webhooks`) — eventos configurables, firma HMAC, test, historial
+- [x] `GET/POST/PATCH/DELETE /api/webhooks` + `/api/webhooks/:id/test` + `/api/webhooks/:id/deliveries`
+- [x] Dispatch automático en eventos de deals/contacts (via `webhook-dispatch.ts`)
+- [ ] Slack OAuth (por ahora funciona via webhook genérico)
+- [ ] Stripe, Calendly, Google Calendar
+
+**CRM settings**
+- [x] Editor visual de pipelines y etapas (`/dashboard/settings/pipelines`)
+- [x] Catálogo de productos (`/dashboard/settings/products`) — precio, SKU, categoría, vinculación a deals
+- [x] `GET/POST/PATCH/DELETE /api/products` + `/api/products/deal/:dealId`
 
 ---
 
@@ -411,12 +408,13 @@ DELETE /api/notifications/:id
 POST   /api/contacts/:id/email
 ```
 
-> **Nota:** Después de hacer `npm install`, corré la migración de DB para el modelo `Notification`:
+> **Migraciones pendientes:** Después de `npm install`, corré:
 > ```bash
 > cd packages/database
-> npm run db:migrate:dev -- --name add_notifications
+> npm run db:migrate:dev -- --name add_notifications_webhooks
 > cd ../..
 > ```
+> Esto crea los modelos: `Notification`, `Webhook`, `WebhookDelivery`
 
 ## Stack tecnológico
 

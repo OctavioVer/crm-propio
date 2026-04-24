@@ -5,7 +5,9 @@
       "Bash(docker compose *)",
       "Bash(npm install *)",
       "PowerShell(Get-Command node -ErrorAction SilentlyContinue; Get-Command npm -ErrorAction SilentlyContinue; [System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) -split \";\" | Where-Object { $_ -match \"node|npm\" })",
-      "PowerShell(& \"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" --version)"
+      "PowerShell(& \"C:\\\\Program Files\\\\nodejs\\\\npm.cmd\" --version)",
+      "Bash(mkdir -p \"c:/Users/USUARIO/OneDrive/Escritorio/crm propio/apps/web/app/dashboard/forms/[id]\")",
+      "Bash(mkdir -p \"c:/Users/USUARIO/OneDrive/Escritorio/crm propio/apps/web/app/form/[slug]\")"
     ]
   }
 }

@@ -1,6 +1,8 @@
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { prisma } from '@crm/database'
+import Anthropic from '@anthropic-ai/sdk'
+import { config } from '../config'
 
 const listSchema = z.object({
   page: z.coerce.number().min(1).default(1),
@@ -159,5 +161,58 @@ export const conversationRoutes: FastifyPluginAsync = async (fastify) => {
     if (!conversation) return reply.status(404).send({ message: 'Conversación no encontrada' })
     await prisma.conversation.update({ where: { id }, data: { status: 'ARCHIVED' } })
     return reply.status(204).send()
+  })
+
+  // Sentiment analysis via Claude
+  fastify.post('/:id/analyze', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    if (!config.ANTHROPIC_API_KEY) {
+      return reply.status(503).send({ message: 'AI no configurada' })
+    }
+
+    const conversation = await prisma.conversation.findFirst({
+      where: { id, tenantId: request.authUser.tenantId },
+      include: { messages: { orderBy: { sentAt: 'asc' }, take: 20 } },
+    })
+    if (!conversation) return reply.status(404).send({ message: 'Conversación no encontrada' })
+    if (conversation.messages.length === 0) {
+      return reply.status(400).send({ message: 'La conversación no tiene mensajes' })
+    }
+
+    const transcript = conversation.messages
+      .map(m => `[${m.direction === 'IN' ? 'Cliente' : 'Agente'}]: ${m.body ?? ''}`)
+      .join('\n')
+
+    const client = new Anthropic({ apiKey: config.ANTHROPIC_API_KEY })
+    const message = await client.messages.create({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 200,
+      messages: [{
+        role: 'user',
+        content: `Analizá el sentimiento de esta conversación de soporte/ventas y devolvé un JSON con:
+- sentiment: "positivo" | "neutro" | "negativo"
+- score: número del -1 (muy negativo) al 1 (muy positivo)
+- summary: resumen de 1 oración del tono
+- urgency: "baja" | "media" | "alta"
+
+Conversación:
+${transcript}
+
+Respondé SOLO con el JSON, sin markdown.`,
+      }],
+    })
+
+    const text = message.content[0].type === 'text' ? message.content[0].text : '{}'
+    let analysis: Record<string, unknown> = {}
+    try { analysis = JSON.parse(text) } catch { analysis = { sentiment: 'neutro', score: 0, summary: text, urgency: 'baja' } }
+
+    // Store in metadata
+    const meta = (conversation.metadataJson as Record<string, unknown>) ?? {}
+    await prisma.conversation.update({
+      where: { id },
+      data: { metadataJson: { ...meta, sentiment: analysis } },
+    })
+
+    return analysis
   })
 }

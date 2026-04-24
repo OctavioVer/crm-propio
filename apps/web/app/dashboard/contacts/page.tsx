@@ -4,10 +4,11 @@ import { useEffect, useState, useCallback } from 'react'
 import { Header } from '@/components/layout/header'
 import { api } from '@/lib/api'
 import { formatDate, getInitials } from '@/lib/utils'
-import { Plus, Search, Mail, Phone, MoreHorizontal, Download, SlidersHorizontal, X } from 'lucide-react'
+import { Plus, Search, Mail, Phone, MoreHorizontal, Download, SlidersHorizontal, X, Upload } from 'lucide-react'
 import type { Contact, PaginatedResponse } from '@crm/types'
 import { Modal } from '@/components/ui/modal'
 import { ContactForm } from '@/components/contacts/contact-form'
+import { ImportContactsModal } from '@/components/contacts/import-contacts-modal'
 import { TableSkeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -32,6 +33,7 @@ export default function ContactsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isImportOpen, setIsImportOpen] = useState(false)
   const router = useRouter()
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length
@@ -126,6 +128,7 @@ export default function ContactsPage() {
                 </span>
               )}
             </button>
+            <button onClick={() => setIsImportOpen(true)} className="btn-secondary"><Upload size={16} /> Importar CSV</button>
             <button onClick={handleExport} className="btn-secondary"><Download size={16} /> Exportar</button>
             <button onClick={() => setIsModalOpen(true)} className="btn-primary"><Plus size={16} /> Nuevo contacto</button>
           </div>
@@ -305,6 +308,12 @@ export default function ContactsPage() {
           }}
         />
       </Modal>
+
+      <ImportContactsModal
+        isOpen={isImportOpen}
+        onClose={() => setIsImportOpen(false)}
+        onSuccess={() => fetchContacts(search, 1, filters)}
+      />
     </div>
   )
 }

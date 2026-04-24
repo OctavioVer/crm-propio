@@ -11,6 +11,8 @@ import {
   Settings,
   Zap,
   LogOut,
+  Sparkles,
+  Mail,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logout } from '@/lib/auth'
@@ -23,6 +25,8 @@ const navigation = [
   { name: 'Conversaciones', href: '/dashboard/conversations', icon: MessageSquare },
   { name: 'Automatizaciones', href: '/dashboard/automations', icon: Zap },
   { name: 'Analítica', href: '/dashboard/analytics', icon: BarChart3 },
+  { name: 'Campañas', href: '/dashboard/campaigns', icon: Mail },
+  { name: 'Copiloto AI', href: '/dashboard/copilot', icon: Sparkles },
 ]
 
 const secondary = [
@@ -52,14 +56,22 @@ export function Sidebar() {
       <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
         {navigation.map((item) => {
           const active = pathname === item.href || pathname.startsWith(item.href + '/')
+          const isCopilot = item.href === '/dashboard/copilot'
           return (
             <Link
               key={item.name}
               href={item.href}
-              className={cn('sidebar-link', active && 'active')}
+              className={cn(
+                'sidebar-link',
+                active && 'active',
+                isCopilot && !active && 'text-purple-600 hover:bg-purple-50',
+              )}
             >
-              <item.icon size={18} />
+              <item.icon size={18} className={isCopilot && !active ? 'text-purple-500' : ''} />
               {item.name}
+              {isCopilot && (
+                <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded-full">AI</span>
+              )}
             </Link>
           )
         })}

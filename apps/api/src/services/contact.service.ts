@@ -146,8 +146,9 @@ export class ContactService {
       include: {
         emails: true,
         phones: true,
-        activities: { where: { createdAt: { gte: new Date(Date.now() - 30 * 86400_000) } } },
-        deals: { where: { status: { in: ['OPEN', 'WON'] } } },
+        activities: { orderBy: { createdAt: 'desc' }, take: 50 },
+        deals: { include: { activities: { select: { id: true } } } },
+        conversations: { select: { id: true, metadataJson: true } },
       },
     })
     if (!contact) throw new Error('Contacto no encontrado')
@@ -155,25 +156,60 @@ export class ContactService {
     let score = 0
     const breakdown: Record<string, number> = {}
 
-    if (contact.emails.length > 0) { score += 20; breakdown['Tiene email'] = 20 }
-    if (contact.phones.length > 0) { score += 15; breakdown['Tiene teléfono'] = 15 }
-    if (contact.notes) { score += 5; breakdown['Tiene notas'] = 5 }
+    // --- Completitud del perfil (25 pts) ---
+    if (contact.emails.length > 0) { score += 15; breakdown['Email registrado'] = 15 }
+    if (contact.phones.length > 0) { score += 5; breakdown['Teléfono registrado'] = 5 }
+    if (contact.notes) { score += 3; breakdown['Tiene notas'] = 3 }
+    if (contact.companyName) { score += 2; breakdown['Empresa registrada'] = 2 }
 
-    const activityPoints = Math.min(contact.activities.length * 5, 30)
-    if (activityPoints > 0) { score += activityPoints; breakdown[`${contact.activities.length} actividades recientes`] = activityPoints }
+    // --- Actividad reciente (30 pts) ---
+    const now = Date.now()
+    const activitiesLast7 = contact.activities.filter(a => now - new Date(a.createdAt).getTime() < 7 * 86400_000)
+    const activitiesLast30 = contact.activities.filter(a => now - new Date(a.createdAt).getTime() < 30 * 86400_000)
+    const recencyPts = Math.min(activitiesLast7.length * 8, 20)
+    const volumePts = Math.min(activitiesLast30.length * 2, 10)
+    if (recencyPts > 0) { score += recencyPts; breakdown[`${activitiesLast7.length} actividades últimos 7d`] = recencyPts }
+    if (volumePts > 0) { score += volumePts; breakdown[`${activitiesLast30.length} actividades últimos 30d`] = volumePts }
 
-    const openDeals = contact.deals.filter(d => d.status === 'OPEN').length
-    const openPoints = Math.min(openDeals * 15, 15)
-    if (openPoints > 0) { score += openPoints; breakdown[`${openDeals} deal(s) abierto(s)`] = openPoints }
+    // --- Tipo de actividades (10 pts) ---
+    const hasMeeting = contact.activities.some(a => a.type === 'MEETING')
+    const hasCall = contact.activities.some(a => a.type === 'CALL')
+    if (hasMeeting) { score += 6; breakdown['Reunión registrada'] = 6 }
+    else if (hasCall) { score += 4; breakdown['Llamada registrada'] = 4 }
 
-    const wonDeals = contact.deals.filter(d => d.status === 'WON').length
-    const wonPoints = Math.min(wonDeals * 15, 15)
-    if (wonPoints > 0) { score += wonPoints; breakdown[`${wonDeals} deal(s) ganado(s)`] = wonPoints }
+    // --- Deals (30 pts) ---
+    const openDeals = contact.deals.filter(d => d.status === 'OPEN')
+    const wonDeals = contact.deals.filter(d => d.status === 'WON')
+    const dealValuePts = Math.min(openDeals.length * 10, 20)
+    const wonPts = Math.min(wonDeals.length * 10, 10)
+    if (dealValuePts > 0) { score += dealValuePts; breakdown[`${openDeals.length} deal(s) abierto(s)`] = dealValuePts }
+    if (wonPts > 0) { score += wonPts; breakdown[`${wonDeals.length} deal(s) ganado(s)`] = wonPts }
 
-    score = Math.min(score, 100)
+    // --- Sentimiento en conversaciones (5 pts) ---
+    const positiveConvs = contact.conversations.filter(c => {
+      const meta = c.metadataJson as any
+      return meta?.sentiment?.sentiment === 'positivo'
+    }).length
+    if (positiveConvs > 0) { score += 5; breakdown['Conversaciones positivas'] = 5 }
+
+    score = Math.min(Math.round(score), 100)
     await prisma.contact.update({ where: { id }, data: { score } })
-    return { score, breakdown }
+    return { score, breakdown, prediction: scoreToPrediction(score) }
   }
+
+  private async assertExists(tenantId: string, id: string) {
+    const c = await prisma.contact.findFirst({ where: { id, tenantId }, select: { id: true } })
+    if (!c) throw new Error('Contacto no encontrado')
+  }
+}
+
+function scoreToPrediction(score: number): { label: string; probability: number; recommendation: string } {
+  if (score >= 80) return { label: 'Hot lead', probability: 0.85, recommendation: 'Contactar de inmediato con propuesta' }
+  if (score >= 60) return { label: 'Warm lead', probability: 0.55, recommendation: 'Agendar reunión de calificación' }
+  if (score >= 40) return { label: 'Nurturing', probability: 0.30, recommendation: 'Enviar contenido de valor y hacer seguimiento' }
+  if (score >= 20) return { label: 'Cold lead', probability: 0.12, recommendation: 'Incluir en campaña de reactivación' }
+  return { label: 'Inactivo', probability: 0.05, recommendation: 'Completar datos del perfil y registrar primer contacto' }
+}
 
   private async assertExists(tenantId: string, id: string) {
     const c = await prisma.contact.findFirst({ where: { id, tenantId }, select: { id: true } })

@@ -98,8 +98,12 @@ model Tenant {
   auditLogs     AuditLog[]
   featureFlags  FeatureFlag[]
   customFields  CustomField[]
-  aiDecisions   AiDecision[]
-  notifications Notification[]
+  aiDecisions       AiDecision[]
+  notifications     Notification[]
+  webhooks          Webhook[]
+  forms             Form[]
+  segments          Segment[]
+  scheduledReports  ScheduledReport[]
 
   @@map("tenants")
 }
@@ -213,18 +217,23 @@ model Contact {
   score            Int         @default(0)
   tags             String[]    @default([])
   notes            String?
+  source           String?
+  utmSource        String?     @map("utm_source")
+  utmMedium        String?     @map("utm_medium")
+  utmCampaign      String?     @map("utm_campaign")
   customFieldsJson Json?       @map("custom_fields_json")
   createdAt        DateTime    @default(now()) @map("created_at")
   updatedAt        DateTime    @updatedAt @map("updated_at")
 
-  tenant        Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
-  owner         User?            @relation("ContactOwner", fields: [ownerId], references: [id])
-  emails        ContactEmail[]
-  phones        ContactPhone[]
-  companies     CompanyContact[]
-  deals         Deal[]
-  activities    Activity[]
-  conversations Conversation[]
+  tenant          Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  owner           User?            @relation("ContactOwner", fields: [ownerId], references: [id])
+  emails          ContactEmail[]
+  phones          ContactPhone[]
+  companies       CompanyContact[]
+  deals           Deal[]
+  activities      Activity[]
+  conversations   Conversation[]
+  formSubmissions FormSubmission[]
 
   @@map("contacts")
 }
@@ -542,4 +551,108 @@ model Notification {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notifications")
+}
+
+model Webhook {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  url         String
+  events      String[] @default([])
+  secret      String?
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant       Tenant            @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  deliveries   WebhookDelivery[]
+
+  @@map("webhooks")
+}
+
+model WebhookDelivery {
+  id           String   @id @default(cuid())
+  webhookId    String   @map("webhook_id")
+  event        String
+  payload      Json
+  statusCode   Int?     @map("status_code")
+  response     String?
+  success      Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  webhook Webhook @relation(fields: [webhookId], references: [id], onDelete: Cascade)
+
+  @@map("webhook_deliveries")
+}
+
+// ─── FORMS (LEAD CAPTURE) ─────────────────────────────────────────────────────
+
+model Form {
+  id            String   @id @default(cuid())
+  tenantId      String   @map("tenant_id")
+  name          String
+  slug          String   @unique
+  description   String?
+  fieldsJson    Json     @map("fields_json")
+  active        Boolean  @default(true)
+  notifyEmail   String?  @map("notify_email")
+  redirectUrl   String?  @map("redirect_url")
+  submitMessage String?  @map("submit_message")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  tenant      Tenant           @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  submissions FormSubmission[]
+
+  @@map("forms")
+}
+
+model FormSubmission {
+  id        String   @id @default(cuid())
+  formId    String   @map("form_id")
+  contactId String?  @map("contact_id")
+  dataJson  Json     @map("data_json")
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  form    Form     @relation(fields: [formId], references: [id], onDelete: Cascade)
+  contact Contact? @relation(fields: [contactId], references: [id])
+
+  @@map("form_submissions")
+}
+
+// ─── SEGMENTS ─────────────────────────────────────────────────────────────────
+
+model Segment {
+  id          String   @id @default(cuid())
+  tenantId    String   @map("tenant_id")
+  name        String
+  description String?
+  filterJson  Json     @map("filter_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("segments")
+}
+
+// ─── SCHEDULED REPORTS ────────────────────────────────────────────────────────
+
+model ScheduledReport {
+  id          String    @id @default(cuid())
+  tenantId    String    @map("tenant_id")
+  name        String
+  type        String    @default("weekly_summary")
+  cronExpr    String    @map("cron_expr")
+  recipients  String[]  @default([])
+  active      Boolean   @default(true)
+  lastSentAt  DateTime? @map("last_sent_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  tenant Tenant @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+
+  @@map("scheduled_reports")
 }

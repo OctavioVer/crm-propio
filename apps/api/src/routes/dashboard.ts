@@ -130,6 +130,43 @@ export const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
     const last30Rev = last30.reduce((s, d) => s + Number(d.amount ?? 0), 0)
     const prev30Rev = prev30.reduce((s, d) => s + Number(d.amount ?? 0), 0)
 
+    // CAC / LTV / MRR calculations from deal data
+    const wonDealsAll = await prisma.deal.findMany({
+      where: { tenantId, status: 'WON' },
+      select: { amount: true, contactId: true, updatedAt: true },
+    })
+    const totalRevenue = wonDealsAll.reduce((s, d) => s + Number(d.amount ?? 0), 0)
+    const avgDealValue = wonDealsAll.length > 0 ? totalRevenue / wonDealsAll.length : 0
+    const uniqueCustomers = new Set(wonDealsAll.map(d => d.contactId).filter(Boolean)).size
+
+    // MRR: assume won deals in last 30 days represent monthly recurring
+    const mrr = wonDealsAll
+      .filter(d => d.updatedAt >= thirtyDaysAgo)
+      .reduce((s, d) => s + Number(d.amount ?? 0), 0)
+    const arr = mrr * 12
+
+    // LTV: avg deal value × avg deals per customer
+    const dealsPerCustomer = uniqueCustomers > 0 ? wonDealsAll.length / uniqueCustomers : 0
+    const ltv = avgDealValue * dealsPerCustomer
+
+    // Contact sources breakdown
+    const sourceStats = await prisma.contact.groupBy({
+      by: ['source'],
+      where: { tenantId },
+      _count: true,
+    })
+
+    // Deals at risk: open deals with no activity in 14+ days
+    const dealsAtRisk = await prisma.deal.findMany({
+      where: {
+        tenantId,
+        status: 'OPEN',
+        activities: { none: { createdAt: { gte: new Date(Date.now() - 14 * 86400_000) } } },
+      },
+      select: { id: true, title: true, amount: true, stage: true, contact: { select: { firstName: true, lastName: true, companyName: true } } },
+      take: 10,
+    })
+
     return {
       sellers,
       pipelineByStage: pipelineByStage.map(s => ({
@@ -147,6 +184,73 @@ export const dashboardRoutes: FastifyPluginAsync = async (fastify) => {
         count: s._count,
         value: Number(s._sum.amount ?? 0),
       })),
+      metrics: {
+        mrr: Math.round(mrr),
+        arr: Math.round(arr),
+        ltv: Math.round(ltv),
+        avgDealValue: Math.round(avgDealValue),
+        uniqueCustomers,
+        totalRevenue: Math.round(totalRevenue),
+      },
+      sources: sourceStats.map(s => ({ source: s.source ?? 'directo', count: s._count })),
+      dealsAtRisk,
     }
+  })
+
+  fastify.get('/anomalies', async (request) => {
+    const tenantId = request.authUser.tenantId
+    const now = new Date()
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 86400_000)
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 86400_000)
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 86400_000)
+
+    const [dealsNoActivity, staleContacts, noDealsContacts, wonThisWeek] = await Promise.all([
+      prisma.deal.findMany({
+        where: {
+          tenantId, status: 'OPEN',
+          activities: { none: { createdAt: { gte: fourteenDaysAgo } } },
+        },
+        select: { id: true, title: true, stage: true, closeDate: true },
+        take: 20,
+      }),
+      prisma.contact.count({
+        where: { tenantId, updatedAt: { lte: thirtyDaysAgo }, activities: { none: { createdAt: { gte: thirtyDaysAgo } } } },
+      }),
+      prisma.contact.count({ where: { tenantId, deals: { none: {} } } }),
+      prisma.deal.count({ where: { tenantId, status: 'WON', updatedAt: { gte: sevenDaysAgo } } }),
+    ])
+
+    const alerts = []
+    if (dealsNoActivity.length > 0) {
+      alerts.push({
+        type: 'warning',
+        title: `${dealsNoActivity.length} deal${dealsNoActivity.length > 1 ? 's' : ''} sin actividad en 14+ días`,
+        body: dealsNoActivity.slice(0, 3).map(d => d.title).join(', ') + (dealsNoActivity.length > 3 ? ` y ${dealsNoActivity.length - 3} más` : ''),
+        entityIds: dealsNoActivity.map(d => d.id),
+      })
+    }
+    if (staleContacts > 10) {
+      alerts.push({
+        type: 'info',
+        title: `${staleContacts} contactos sin interacción en 30+ días`,
+        body: 'Considerá una campaña de reactivación.',
+      })
+    }
+    if (noDealsContacts > 20) {
+      alerts.push({
+        type: 'info',
+        title: `${noDealsContacts} contactos sin deals asociados`,
+        body: 'Hay oportunidades de pipeline sin explotar.',
+      })
+    }
+    if (wonThisWeek > 0) {
+      alerts.push({
+        type: 'success',
+        title: `¡${wonThisWeek} deal${wonThisWeek > 1 ? 's' : ''} ganado${wonThisWeek > 1 ? 's' : ''} esta semana!`,
+        body: 'Excelente rendimiento del equipo.',
+      })
+    }
+
+    return { alerts }
   })
 }
