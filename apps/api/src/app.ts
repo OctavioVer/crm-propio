@@ -25,14 +25,14 @@ export async function buildApp() {
 
   fastify.register(apiRoutes, { prefix: '/api' })
 
-  fastify.setErrorHandler((error, _request, reply) => {
+  fastify.setErrorHandler((error: any, _request, reply) => {
     fastify.log.error(error)
     if (error.name === 'ZodError') {
       return reply.status(422).send({
         statusCode: 422,
         error: 'Unprocessable Entity',
         message: 'Datos inválidos',
-        details: (error as any).errors,
+        details: error.errors,
       })
     }
     const statusCode = error.statusCode ?? 500

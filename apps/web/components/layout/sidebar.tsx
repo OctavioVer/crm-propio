@@ -1,7 +1,8 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   LayoutDashboard,
   Users,
@@ -16,7 +17,6 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logout } from '@/lib/auth'
-import { useRouter } from 'next/navigation'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard/overview', icon: LayoutDashboard },
@@ -36,6 +36,11 @@ const secondary = [
 export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   async function handleLogout() {
     await logout()
@@ -44,55 +49,69 @@ export function Sidebar() {
 
   return (
     <aside className="fixed inset-y-0 left-0 w-60 bg-white border-r border-gray-200 flex flex-col z-30">
-      {/* Logo */}
-      <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-100">
-        <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
-          <span className="text-white text-sm font-bold">C</span>
-        </div>
-        <span className="font-semibold text-gray-900">CRM Pro</span>
-      </div>
+      {!mounted ? (
+        // Static shell that matches exactly what the server sends
+        <div className="flex-1" />
+      ) : (
+        <>
+          {/* Logo */}
+          <div className="flex items-center gap-3 px-5 py-5 border-b border-gray-100">
+            <div className="w-8 h-8 bg-brand-500 rounded-lg flex items-center justify-center">
+              <span className="text-white text-sm font-bold">C</span>
+            </div>
+            <span className="font-semibold text-gray-900">CRM Pro</span>
+          </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
-        {navigation.map((item) => {
-          const active = pathname === item.href || pathname.startsWith(item.href + '/')
-          const isCopilot = item.href === '/dashboard/copilot'
-          return (
-            <Link
-              key={item.name}
-              href={item.href}
-              className={cn(
-                'sidebar-link',
-                active && 'active',
-                isCopilot && !active && 'text-purple-600 hover:bg-purple-50',
-              )}
+          {/* Navigation */}
+          <nav className="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto">
+            {navigation.map((item) => {
+              const active = pathname === item.href || pathname.startsWith(item.href + '/')
+              const isCopilot = item.href === '/dashboard/copilot'
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn(
+                    'sidebar-link',
+                    active && 'active',
+                    isCopilot && !active && 'text-purple-600 hover:bg-purple-50',
+                  )}
+                >
+                  <item.icon size={18} className={isCopilot && !active ? 'text-purple-500' : ''} />
+                  {item.name}
+                  {isCopilot && (
+                    <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded-full">AI</span>
+                  )}
+                </Link>
+              )
+            })}
+          </nav>
+
+          {/* Secondary nav */}
+          <div className="px-3 py-4 border-t border-gray-100 space-y-0.5">
+            {secondary.map((item) => {
+              const active = pathname === item.href || pathname.startsWith(item.href + '/')
+              return (
+                <Link
+                  key={item.name}
+                  href={item.href}
+                  className={cn('sidebar-link', active && 'active')}
+                >
+                  <item.icon size={18} />
+                  {item.name}
+                </Link>
+              )
+            })}
+            <button
+              onClick={handleLogout}
+              className="sidebar-link w-full text-left text-red-500 hover:bg-red-50 hover:text-red-600"
             >
-              <item.icon size={18} className={isCopilot && !active ? 'text-purple-500' : ''} />
-              {item.name}
-              {isCopilot && (
-                <span className="ml-auto text-[10px] font-bold px-1.5 py-0.5 bg-purple-100 text-purple-600 rounded-full">AI</span>
-              )}
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* Secondary nav */}
-      <div className="px-3 py-4 border-t border-gray-100 space-y-0.5">
-        {secondary.map((item) => (
-          <Link key={item.name} href={item.href} className="sidebar-link">
-            <item.icon size={18} />
-            {item.name}
-          </Link>
-        ))}
-        <button
-          onClick={handleLogout}
-          className="sidebar-link w-full text-left text-red-500 hover:bg-red-50 hover:text-red-600"
-        >
-          <LogOut size={18} />
-          Cerrar sesión
-        </button>
-      </div>
+              <LogOut size={18} />
+              Cerrar sesión
+            </button>
+          </div>
+        </>
+      )}
     </aside>
   )
 }

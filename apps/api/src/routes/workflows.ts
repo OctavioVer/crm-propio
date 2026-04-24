@@ -68,8 +68,8 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
         tenantId: request.authUser.tenantId,
         name: body.name,
         description: body.description,
-        triggerJson: body.trigger,
-        nodesJson: body.nodes,
+        triggerJson: body.trigger as any,
+        nodesJson: body.nodes as any,
         active: body.active,
       },
     })
@@ -90,8 +90,8 @@ export const workflowRoutes: FastifyPluginAsync = async (fastify) => {
       data: {
         ...(body.name && { name: body.name }),
         ...(body.description !== undefined && { description: body.description }),
-        ...(body.trigger && { triggerJson: body.trigger }),
-        ...(body.nodes && { nodesJson: body.nodes }),
+        ...(body.trigger && { triggerJson: body.trigger as any }),
+        ...(body.nodes && { nodesJson: body.nodes as any }),
         ...(body.active !== undefined && { active: body.active }),
         version: { increment: 1 },
       },

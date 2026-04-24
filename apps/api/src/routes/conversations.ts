@@ -210,7 +210,7 @@ Respondé SOLO con el JSON, sin markdown.`,
     const meta = (conversation.metadataJson as Record<string, unknown>) ?? {}
     await prisma.conversation.update({
       where: { id },
-      data: { metadataJson: { ...meta, sentiment: analysis } },
+      data: { metadataJson: { ...meta, sentiment: analysis } as any },
     })
 
     return analysis

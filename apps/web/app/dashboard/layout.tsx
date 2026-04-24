@@ -2,9 +2,14 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Sidebar } from '@/components/layout/sidebar'
+import dynamic from 'next/dynamic'
 import { initAuth, getStoredUser } from '@/lib/auth'
 import { Toaster } from 'sonner'
+
+const Sidebar = dynamic(() => import('@/components/layout/sidebar').then(mod => mod.Sidebar), {
+  ssr: false,
+  loading: () => <aside className="fixed inset-y-0 left-0 w-60 bg-white border-r border-gray-200 z-30" />
+})
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()

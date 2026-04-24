@@ -60,7 +60,7 @@ export const formRoutes: FastifyPluginAsync = async (fastify) => {
         name: body.name,
         slug,
         description: body.description,
-        fieldsJson: body.fields,
+        fieldsJson: body.fields as any,
         active: body.active,
         notifyEmail: body.notifyEmail,
         redirectUrl: body.redirectUrl,
@@ -80,7 +80,7 @@ export const formRoutes: FastifyPluginAsync = async (fastify) => {
       data: {
         ...(body.name && { name: body.name }),
         ...(body.description !== undefined && { description: body.description }),
-        ...(body.fields && { fieldsJson: body.fields }),
+        ...(body.fields && { fieldsJson: body.fields as any }),
         ...(body.active !== undefined && { active: body.active }),
         ...(body.notifyEmail !== undefined && { notifyEmail: body.notifyEmail }),
         ...(body.redirectUrl !== undefined && { redirectUrl: body.redirectUrl }),
@@ -165,7 +165,7 @@ export const formRoutes: FastifyPluginAsync = async (fastify) => {
       data: {
         formId: form.id,
         contactId,
-        dataJson: submissionData,
+        dataJson: submissionData as any,
         ipAddress: request.ip,
         userAgent: request.headers['user-agent'] ?? null,
       },
@@ -177,10 +177,9 @@ export const formRoutes: FastifyPluginAsync = async (fastify) => {
         from: config.SMTP_FROM,
         to: form.notifyEmail,
         subject: `Nueva respuesta en "${form.name}"`,
-        html: `<p>Nuevo envío del formulario <strong>${form.name}</strong>:</p><ul>${
-          Object.entries(submissionData).map(([k, v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('')
-        }</ul>`,
-      }).catch(() => {})
+        html: `<p>Nuevo envío del formulario <strong>${form.name}</strong>:</p><ul>${Object.entries(submissionData).map(([k, v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('')
+          }</ul>`,
+      }).catch(() => { })
     }
 
     return {

@@ -24,6 +24,14 @@ class ApiClient {
 
     const res = await fetch(`${this.baseUrl}${path}`, { ...init, headers })
 
+    if (res.status === 401) {
+      this.accessToken = null
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('crm_access')
+        window.location.href = '/login'
+      }
+    }
+
     if (!res.ok) {
       const error = await res.json().catch(() => ({ message: res.statusText }))
       throw new ApiError(res.status, error.message ?? 'Error desconocido', error)

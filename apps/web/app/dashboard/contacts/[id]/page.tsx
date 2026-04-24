@@ -6,7 +6,7 @@ import { formatDate, getInitials } from '@/lib/utils'
 import {
   Mail, Phone, Building2, Calendar, Tag,
   MoreVertical, ArrowLeft, MessageSquare,
-  PhoneOutgoing, FileText, CheckCircle2, User, Pencil, RefreshCw
+  PhoneOutgoing, FileText, CheckCircle2, User, RefreshCw, Plus, X
 } from 'lucide-react'
 import type { Contact, ActivityType } from '@crm/types'
 import { useRouter } from 'next/navigation'
@@ -14,10 +14,9 @@ import { ActivityFeed } from '@/components/contacts/activity-feed'
 import { AddActivityModal } from '@/components/contacts/add-activity-modal'
 import { SendEmailModal } from '@/components/contacts/send-email-modal'
 import { AiPanel } from '@/components/contacts/ai-panel'
-import { Modal } from '@/components/ui/modal'
-import { ContactForm } from '@/components/contacts/contact-form'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from 'sonner'
+import { cn } from '@/lib/utils'
 
 export default function ContactDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
@@ -26,15 +25,27 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
   const [activeTab, setActiveTab] = useState('timeline')
   const [activityRefreshKey, setActivityRefreshKey] = useState(0)
   const [activityModal, setActivityModal] = useState<{ open: boolean; type: ActivityType }>({ open: false, type: 'NOTE' })
-  const [editModalOpen, setEditModalOpen] = useState(false)
   const [emailModalOpen, setEmailModalOpen] = useState(false)
   const [scoringLoading, setScoringLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [localData, setLocalData] = useState({
+    firstName: '',
+    lastName: '',
+    emails: [] as { id?: string; email: string; isPrimary: boolean }[],
+    phones: [] as { id?: string; phone: string; type: string }[]
+  })
   const router = useRouter()
 
   const fetchContact = async () => {
     try {
       const res = await api.get<Contact>(`/api/contacts/${id}`)
       setContact(res)
+      setLocalData({
+        firstName: res.firstName || '',
+        lastName: res.lastName || '',
+        emails: res.emails?.length ? res.emails.map(e => ({ ...e })) : [{ email: '', isPrimary: true }],
+        phones: res.phones?.length ? res.phones.map(p => ({ ...p })) : [{ phone: '', type: 'mobile' }]
+      })
     } catch {
       toast.error('No se pudo cargar el contacto')
     } finally {
@@ -61,6 +72,34 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
     }
   }
 
+  const handleQuickUpdate = async () => {
+    setSaving(true)
+    try {
+      const payload = {
+        firstName: localData.firstName,
+        lastName: localData.lastName,
+        emails: localData.emails.filter(e => e.email.trim() !== ''),
+        phones: localData.phones.filter(p => p.phone.trim() !== '')
+      }
+      const updated = await api.patch<Contact>(`/api/contacts/${id}`, payload)
+      setContact(updated)
+      toast.success('Información actualizada')
+    } catch {
+      toast.error('Error al actualizar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const hasChanges = contact && (
+    localData.firstName !== (contact.firstName || '') ||
+    localData.lastName !== (contact.lastName || '') ||
+    JSON.stringify(localData.emails.map(e => ({ email: e.email, isPrimary: e.isPrimary }))) !==
+    JSON.stringify((contact.emails || []).map(e => ({ email: e.email, isPrimary: e.isPrimary }))) ||
+    JSON.stringify(localData.phones.map(p => ({ phone: p.phone, type: p.type }))) !==
+    JSON.stringify((contact.phones || []).map(p => ({ phone: p.phone, type: p.type })))
+  )
+
   if (loading) return (
     <div className="flex flex-col h-full bg-gray-50/50">
       <div className="bg-white border-b border-gray-200 px-6 py-6">
@@ -82,8 +121,22 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
   if (!contact) return <div className="p-8 text-center text-red-500 font-medium">Contacto no encontrado</div>
 
   const fullName = [contact.firstName, contact.lastName].filter(Boolean).join(' ') || contact.companyName || 'Sin nombre'
-  const primaryEmail = contact.emails?.find((e) => e.isPrimary)?.email ?? contact.emails?.[0]?.email
-  const primaryPhone = contact.phones?.[0]?.phone
+
+  const addEmail = () => setLocalData(prev => ({ ...prev, emails: [...prev.emails, { email: '', isPrimary: false }] }))
+  const removeEmail = (index: number) => setLocalData(prev => ({ ...prev, emails: prev.emails.filter((_, i) => i !== index) }))
+  const updateEmail = (index: number, val: string) => setLocalData(prev => {
+    const next = [...prev.emails]
+    next[index].email = val
+    return { ...prev, emails: next }
+  })
+
+  const addPhone = () => setLocalData(prev => ({ ...prev, phones: [...prev.phones, { phone: '', type: 'mobile' }] }))
+  const removePhone = (index: number) => setLocalData(prev => ({ ...prev, phones: prev.phones.filter((_, i) => i !== index) }))
+  const updatePhone = (index: number, val: string) => setLocalData(prev => {
+    const next = [...prev.phones]
+    next[index].phone = val
+    return { ...prev, phones: next }
+  })
 
   return (
     <div className="flex flex-col h-full bg-gray-50/50">
@@ -119,10 +172,6 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
             </div>
           </div>
           <div className="ml-auto flex items-center gap-2">
-            <button className="btn-secondary px-3 py-1.5"><MoreVertical size={16} /></button>
-            <button onClick={() => setEditModalOpen(true)} className="btn-primary px-4 py-1.5 flex items-center gap-1.5">
-              <Pencil size={14} /> Editar
-            </button>
           </div>
         </div>
 
@@ -155,11 +204,10 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab.toLowerCase())}
-                className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${
-                  activeTab === tab.toLowerCase()
-                    ? 'border-brand-500 text-brand-600'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-                }`}
+                className={`py-3 px-4 text-sm font-medium border-b-2 transition-colors ${activeTab === tab.toLowerCase()
+                  ? 'border-brand-500 text-brand-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                  }`}
               >
                 {tab}
               </button>
@@ -202,21 +250,100 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
           <section>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Información básica</h3>
             <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-gray-50 rounded-lg text-gray-400 mt-0.5"><Mail size={16} /></div>
-                <div>
-                  <p className="text-xs text-gray-500">Email principal</p>
-                  <p className="text-sm font-medium text-gray-900 break-all">{primaryEmail || 'No asignado'}</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Nombre</label>
+                  <input
+                    type="text"
+                    value={localData.firstName}
+                    onChange={(e) => setLocalData(prev => ({ ...prev, firstName: e.target.value }))}
+                    className="w-full px-3 py-1.5 text-sm bg-gray-50 border-transparent focus:bg-white focus:border-brand-500 rounded-lg transition-all outline-none font-medium text-gray-900"
+                    placeholder="Nombre"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Apellido</label>
+                  <input
+                    type="text"
+                    value={localData.lastName}
+                    onChange={(e) => setLocalData(prev => ({ ...prev, lastName: e.target.value }))}
+                    className="w-full px-3 py-1.5 text-sm bg-gray-50 border-transparent focus:bg-white focus:border-brand-500 rounded-lg transition-all outline-none font-medium text-gray-900"
+                    placeholder="Apellido"
+                  />
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-gray-50 rounded-lg text-gray-400 mt-0.5"><Phone size={16} /></div>
-                <div>
-                  <p className="text-xs text-gray-500">Teléfono</p>
-                  <p className="text-sm font-medium text-gray-900">{primaryPhone || 'No asignado'}</p>
+
+              {/* Emails List */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Emails</label>
+                  <button onClick={addEmail} className="text-brand-600 hover:text-brand-700 p-1"><Plus size={14} /></button>
                 </div>
+                {localData.emails.map((e, idx) => (
+                  <div key={idx} className="flex items-center gap-2 group">
+                    <div className="p-2 bg-gray-50 rounded-lg text-gray-400"><Mail size={14} /></div>
+                    <input
+                      type="email"
+                      value={e.email}
+                      onChange={(ev) => updateEmail(idx, ev.target.value)}
+                      className="flex-1 px-2 py-1 text-sm bg-transparent border-b border-transparent focus:border-brand-500 hover:bg-gray-50 transition-all outline-none text-gray-900"
+                      placeholder="Email"
+                    />
+                    {localData.emails.length > 1 && (
+                      <button onClick={() => removeEmail(idx)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all"><X size={14} /></button>
+                    )}
+                  </div>
+                ))}
               </div>
-              <div className="flex items-start gap-3">
+
+              {/* Phones List */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-[10px] font-bold text-gray-400 uppercase ml-1">Teléfonos</label>
+                  <button onClick={addPhone} className="text-brand-600 hover:text-brand-700 p-1"><Plus size={14} /></button>
+                </div>
+                {localData.phones.map((p, idx) => (
+                  <div key={idx} className="flex items-center gap-2 group">
+                    <div className="p-2 bg-gray-50 rounded-lg text-gray-400"><Phone size={14} /></div>
+                    <input
+                      type="text"
+                      value={p.phone}
+                      onChange={(ev) => updatePhone(idx, ev.target.value)}
+                      className="flex-1 px-2 py-1 text-sm bg-transparent border-b border-transparent focus:border-brand-500 hover:bg-gray-50 transition-all outline-none text-gray-900"
+                      placeholder="Teléfono"
+                    />
+                    {localData.phones.length > 1 && (
+                      <button onClick={() => removePhone(idx)} className="opacity-0 group-hover:opacity-100 text-gray-300 hover:text-red-500 transition-all"><X size={14} /></button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {hasChanges && (
+                <div className="flex gap-2 pt-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                  <button
+                    onClick={handleQuickUpdate}
+                    disabled={saving}
+                    className="flex-1 btn-primary py-2 text-xs font-semibold h-auto shadow-sm"
+                  >
+                    {saving ? 'Guardando...' : 'Guardar cambios'}
+                  </button>
+                  <button
+                    onClick={() => setLocalData({
+                      firstName: contact.firstName || '',
+                      lastName: contact.lastName || '',
+                      emails: contact.emails?.length ? contact.emails.map(e => ({ ...e })) : [{ email: '', isPrimary: true }],
+                      phones: contact.phones?.length ? contact.phones.map(p => ({ ...p })) : [{ phone: '', type: 'mobile' }]
+                    })}
+                    disabled={saving}
+                    className="btn-secondary px-3 py-2 text-xs h-auto"
+                  >
+                    Descartar
+                  </button>
+                </div>
+              )}
+
+              <div className="flex items-start gap-3 pt-2">
                 <div className="p-2 bg-gray-50 rounded-lg text-gray-400 mt-0.5"><Tag size={16} /></div>
                 <div>
                   <p className="text-xs text-gray-500">Etiquetas</p>
@@ -284,18 +411,6 @@ export default function ContactDetailPage({ params }: { params: Promise<{ id: st
         contactId={id}
         defaultType={activityModal.type}
       />
-
-      <Modal isOpen={editModalOpen} onClose={() => setEditModalOpen(false)} title="Editar contacto" maxWidth="max-w-xl">
-        <ContactForm
-          contact={contact}
-          onCancel={() => setEditModalOpen(false)}
-          onSuccess={() => {
-            setEditModalOpen(false)
-            fetchContact()
-            toast.success('Contacto actualizado')
-          }}
-        />
-      </Modal>
 
       <SendEmailModal
         isOpen={emailModalOpen}

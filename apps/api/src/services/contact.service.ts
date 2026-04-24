@@ -210,9 +210,3 @@ function scoreToPrediction(score: number): { label: string; probability: number;
   if (score >= 20) return { label: 'Cold lead', probability: 0.12, recommendation: 'Incluir en campaña de reactivación' }
   return { label: 'Inactivo', probability: 0.05, recommendation: 'Completar datos del perfil y registrar primer contacto' }
 }
-
-  private async assertExists(tenantId: string, id: string) {
-    const c = await prisma.contact.findFirst({ where: { id, tenantId }, select: { id: true } })
-    if (!c) throw new Error('Contacto no encontrado')
-  }
-}

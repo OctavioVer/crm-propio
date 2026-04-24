@@ -1,21 +1,13 @@
 import { prisma } from '@crm/database'
-import crypto from 'crypto'
 
-export async function dispatchWebhook(tenantId: string, event: string, payload: Record<string, unknown>) {
+export async function dispatchWebhook(tenantId: string, event: string, payload: Record<string, any>) {
   const webhooks = await prisma.webhook.findMany({
-    where: { tenantId, active: true, events: { has: event } },
+    where: { tenantId, active: true },
   })
 
-  for (const webhook of webhooks) {
-    const body = JSON.stringify({ event, payload, timestamp: new Date().toISOString() })
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'X-CRM-Event': event,
-    }
-
-    if (webhook.secret) {
-      const sig = crypto.createHmac('sha256', webhook.secret).update(body).digest('hex')
-      headers['X-CRM-Signature'] = `sha256=${sig}`
+  const results = await Promise.all(webhooks.map(async (webhook) => {
+    if (!webhook.events.includes(event) && !webhook.events.includes('*')) {
+      return
     }
 
     let statusCode: number | null = null
@@ -23,6 +15,19 @@ export async function dispatchWebhook(tenantId: string, event: string, payload: 
     let success = false
 
     try {
+      const body = JSON.stringify({
+        event,
+        payload,
+        timestamp: new Date().toISOString(),
+      })
+
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      }
+      if (webhook.secret) {
+        headers['X-Webhook-Secret'] = webhook.secret
+      }
+
       const res = await fetch(webhook.url, {
         method: 'POST',
         headers,
@@ -30,21 +35,23 @@ export async function dispatchWebhook(tenantId: string, event: string, payload: 
         signal: AbortSignal.timeout(10_000),
       })
       statusCode = res.status
-      responseText = await res.text().catch(() => null)
       success = res.ok
+      responseText = await res.text()
     } catch (err: any) {
-      responseText = err?.message ?? 'Timeout'
+      responseText = err.message
     }
 
     await prisma.webhookDelivery.create({
       data: {
         webhookId: webhook.id,
         event,
-        payload,
+        payload: payload as any,
         statusCode,
         response: responseText?.slice(0, 500),
         success,
       },
-    }).catch(() => {})
-  }
+    })
+  }))
+
+  return results
 }

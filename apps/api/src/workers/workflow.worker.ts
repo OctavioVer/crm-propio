@@ -185,7 +185,7 @@ export function startWorkflowWorker() {
         return
       }
 
-      const nodes = workflow.nodesJson as WorkflowNode[]
+      const nodes = workflow.nodesJson as any as WorkflowNode[]
       const logs: unknown[] = []
 
       for (const node of nodes) {
@@ -195,7 +195,7 @@ export function startWorkflowWorker() {
 
       await prisma.workflowExecution.update({
         where: { id: executionId },
-        data: { status: 'COMPLETED', logJson: logs, finishedAt: new Date() },
+        data: { status: 'COMPLETED', logJson: logs as any, finishedAt: new Date() },
       })
     },
     { connection: redis, concurrency: 5 }

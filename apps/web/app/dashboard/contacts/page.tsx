@@ -268,9 +268,6 @@ export default function ContactsPage() {
                         </td>
                         <td className="px-4 py-3 hidden lg:table-cell text-gray-500 text-xs">{formatDate(contact.createdAt)}</td>
                         <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                          <button className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-md transition-colors">
-                            <MoreHorizontal size={16} />
-                          </button>
                         </td>
                       </tr>
                     )

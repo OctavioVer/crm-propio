@@ -8,7 +8,14 @@ async function main() {
   const app = await buildApp()
 
   await prisma.$connect()
-  await redis.connect()
+  
+  if (redis.status === 'wait') {
+    try {
+      await redis.connect()
+    } catch (err: any) {
+      if (!err.message.includes('already connecting')) throw err
+    }
+  }
 
   // Start BullMQ workflow worker
   startWorkflowWorker()
