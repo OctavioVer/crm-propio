@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Header } from '@/components/layout/header'
 import { api } from '@/lib/api'
 import { formatDate, getInitials } from '@/lib/utils'
-import { Plus, Search, Mail, Phone, MoreHorizontal, Download, SlidersHorizontal, X, Upload } from 'lucide-react'
+import { Plus, Search, Mail, Phone, MoreHorizontal, Download, SlidersHorizontal, X, Upload, Bookmark, BookmarkCheck } from 'lucide-react'
 import type { Contact, PaginatedResponse } from '@crm/types'
 import { Modal } from '@/components/ui/modal'
 import { ContactForm } from '@/components/contacts/contact-form'
@@ -13,6 +13,8 @@ import { TableSkeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { downloadCsv } from '@/lib/csv'
+
+interface Segment { id: string; name: string; filterJson: Record<string, unknown>; contactCount?: number }
 
 interface Filters {
   stage: string
@@ -34,7 +36,40 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(true)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
+  const [segments, setSegments] = useState<Segment[]>([])
   const router = useRouter()
+
+  useEffect(() => {
+    api.get<Segment[]>('/api/segments').then(setSegments).catch(() => {})
+  }, [])
+
+  const saveSegment = async () => {
+    const name = prompt('Nombre del segmento:')
+    if (!name?.trim()) return
+    try {
+      const seg = await api.post<Segment>('/api/segments', { name: name.trim(), filter: filters })
+      setSegments(prev => [...prev, seg])
+      toast.success(`Segmento "${name}" guardado`)
+    } catch { toast.error('Error al guardar segmento') }
+  }
+
+  const loadSegment = (seg: Segment) => {
+    const f = seg.filterJson as any
+    setFilters({
+      stage: f.stage ?? '',
+      type: f.type ?? '',
+      scoreMin: f.scoreMin != null ? String(f.scoreMin) : '',
+      scoreMax: f.scoreMax != null ? String(f.scoreMax) : '',
+      tag: f.tag ?? '',
+    })
+    setShowFilters(true)
+  }
+
+  const deleteSegment = async (id: string) => {
+    await api.delete(`/api/segments/${id}`)
+    setSegments(prev => prev.filter(s => s.id !== id))
+    toast.success('Segmento eliminado')
+  }
 
   const activeFilterCount = Object.values(filters).filter(Boolean).length
 
@@ -162,10 +197,27 @@ export default function ContactsPage() {
               <input type="number" min={0} max={100} className="input text-sm py-1.5 w-20" placeholder="100" value={filters.scoreMax} onChange={e => setFilters(f => ({ ...f, scoreMax: e.target.value }))} />
             </div>
             {activeFilterCount > 0 && (
-              <button onClick={clearFilters} className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700 mt-auto pb-1.5">
-                <X size={14} /> Limpiar
-              </button>
+              <>
+                <button onClick={clearFilters} className="flex items-center gap-1 text-sm text-red-500 hover:text-red-700 mt-auto pb-1.5">
+                  <X size={14} /> Limpiar
+                </button>
+                <button onClick={saveSegment} className="flex items-center gap-1 text-sm text-brand-600 hover:text-brand-800 mt-auto pb-1.5 font-medium">
+                  <Bookmark size={14} /> Guardar segmento
+                </button>
+              </>
             )}
+          </div>
+        )}
+
+        {segments.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-2 items-center">
+            <span className="text-xs text-gray-400 flex items-center gap-1 mr-1"><BookmarkCheck size={12} /> Segmentos:</span>
+            {segments.map(seg => (
+              <div key={seg.id} className="flex items-center gap-1 bg-brand-50 border border-brand-100 rounded-full px-2.5 py-0.5">
+                <button onClick={() => loadSegment(seg)} className="text-xs text-brand-700 font-medium hover:text-brand-900">{seg.name}</button>
+                <button onClick={() => deleteSegment(seg.id)} className="text-brand-300 hover:text-red-500 ml-0.5">×</button>
+              </div>
+            ))}
           </div>
         )}
 
@@ -311,6 +363,56 @@ export default function ContactsPage() {
         onClose={() => setIsImportOpen(false)}
         onSuccess={() => fetchContacts(search, 1, filters)}
       />
+
+      {/* Bulk action bar */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 bg-gray-900 text-white px-5 py-3 rounded-2xl shadow-2xl">
+          <span className="text-sm font-medium">{selectedIds.length} seleccionado{selectedIds.length > 1 ? 's' : ''}</span>
+          <div className="w-px h-4 bg-gray-600" />
+          <button
+            onClick={async () => {
+              const tag = prompt('Agregar tag:')
+              if (!tag?.trim()) return
+              await api.post('/api/contacts/bulk', { ids: selectedIds, action: 'add_tag', value: tag.trim() })
+              toast.success(`Tag "${tag}" agregado a ${selectedIds.length} contactos`)
+              setSelectedIds([])
+              fetchContacts(search, 1, filters)
+            }}
+            className="text-sm hover:text-brand-300 transition-colors"
+          >
+            Agregar tag
+          </button>
+          <button
+            onClick={async () => {
+              const stage = prompt('Nueva etapa:')
+              if (!stage?.trim()) return
+              await api.post('/api/contacts/bulk', { ids: selectedIds, action: 'set_stage', value: stage.trim() })
+              toast.success(`Etapa actualizada`)
+              setSelectedIds([])
+              fetchContacts(search, 1, filters)
+            }}
+            className="text-sm hover:text-brand-300 transition-colors"
+          >
+            Cambiar etapa
+          </button>
+          <button
+            onClick={async () => {
+              if (!confirm(`¿Eliminar ${selectedIds.length} contactos? Esta acción no se puede deshacer.`)) return
+              await api.post('/api/contacts/bulk', { ids: selectedIds, action: 'delete' })
+              toast.success(`${selectedIds.length} contactos eliminados`)
+              setSelectedIds([])
+              fetchContacts(search, 1, filters)
+            }}
+            className="text-sm text-red-400 hover:text-red-300 transition-colors"
+          >
+            Eliminar
+          </button>
+          <div className="w-px h-4 bg-gray-600" />
+          <button onClick={() => setSelectedIds([])} className="text-gray-400 hover:text-white transition-colors text-sm">
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   )
 }

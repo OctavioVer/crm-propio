@@ -2,7 +2,7 @@
 
 import { Header } from '@/components/layout/header'
 import { getStoredUser } from '@/lib/auth'
-import { User, Users, Bell, Shield, ChevronRight, BarChart2, GitBranch, Package, Webhook, Shield as ShieldIcon } from 'lucide-react'
+import { User, Users, Bell, Shield, ChevronRight, BarChart2, GitBranch, Package, Webhook, Calendar } from 'lucide-react'
 import Link from 'next/link'
 
 export default function SettingsPage() {
@@ -85,7 +85,15 @@ export default function SettingsPage() {
           available: isAdmin,
         },
         {
-          icon: ShieldIcon,
+          icon: Calendar,
+          title: 'Reportes programados',
+          description: 'Envío automático de reportes del CRM por email',
+          href: '/dashboard/settings/reports',
+          color: 'bg-indigo-50 text-indigo-600',
+          available: isAdmin,
+        },
+        {
+          icon: Shield,
           title: 'Seguridad',
           description: '2FA, sesiones activas y logs de acceso',
           href: null,

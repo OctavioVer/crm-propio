@@ -5,7 +5,7 @@ import { use } from 'react'
 import { Header } from '@/components/layout/header'
 import { api } from '@/lib/api'
 import { formatDate } from '@/lib/utils'
-import { Send, ChevronLeft, MoreVertical, CheckCheck, Phone, Mail, User } from 'lucide-react'
+import { Send, ChevronLeft, CheckCheck, Phone, Mail, User, Sparkles, Loader2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import Link from 'next/link'
@@ -49,6 +49,8 @@ export default function ConversationDetailPage({ params }: { params: Promise<{ i
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const [sending, setSending] = useState(false)
+  const [analyzing, setAnalyzing] = useState(false)
+  const [sentiment, setSentiment] = useState<{ sentiment: string; score: number; summary: string; urgency: string } | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -78,6 +80,18 @@ export default function ConversationDetailPage({ params }: { params: Promise<{ i
     } finally {
       setSending(false)
     }
+  }
+
+  const analyzeSentiment = async () => {
+    setAnalyzing(true)
+    try {
+      const result = await api.post<{ sentiment: string; score: number; summary: string; urgency: string }>(
+        `/api/conversations/${id}/analyze`, {}
+      )
+      setSentiment(result)
+      toast.success('Análisis completado')
+    } catch { toast.error('Error al analizar sentimiento') }
+    finally { setAnalyzing(false) }
   }
 
   const updateStatus = async (status: string) => {
@@ -220,12 +234,38 @@ export default function ConversationDetailPage({ params }: { params: Promise<{ i
                 ))}
               </div>
             )}
-            <Link
-              href={`/dashboard/contacts/${conversation.contact.id}`}
-              className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium"
-            >
+            <Link href={`/dashboard/contacts/${conversation.contact.id}`} className="flex items-center gap-2 text-sm text-brand-600 hover:text-brand-700 font-medium mb-4">
               <User size={14} /> Ver perfil completo
             </Link>
+
+            <div className="pt-4 border-t border-gray-100">
+              <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                <Sparkles size={11} /> Sentimiento AI
+              </h3>
+              {sentiment ? (
+                <div className="space-y-2 text-xs">
+                  <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full font-semibold ${
+                    sentiment.sentiment === 'positivo' ? 'bg-green-100 text-green-700' :
+                    sentiment.sentiment === 'negativo' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {sentiment.sentiment === 'positivo' ? '😊' : sentiment.sentiment === 'negativo' ? '😞' : '😐'}
+                    {sentiment.sentiment}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-400">Urgencia:</span>
+                    <span className={`font-medium ${sentiment.urgency === 'alta' ? 'text-red-600' : sentiment.urgency === 'media' ? 'text-yellow-600' : 'text-green-600'}`}>
+                      {sentiment.urgency}
+                    </span>
+                  </div>
+                  {sentiment.summary && <p className="text-gray-500 leading-relaxed">{sentiment.summary}</p>}
+                </div>
+              ) : (
+                <button onClick={analyzeSentiment} disabled={analyzing || conversation.messages.length === 0} className="w-full flex items-center justify-center gap-2 text-xs text-purple-600 bg-purple-50 hover:bg-purple-100 px-3 py-2 rounded-lg transition-colors disabled:opacity-40 font-medium">
+                  {analyzing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+                  {analyzing ? 'Analizando...' : 'Analizar sentimiento'}
+                </button>
+              )}
+            </div>
           </div>
         )}
       </div>

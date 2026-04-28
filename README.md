@@ -196,29 +196,30 @@ npm run dev
 
 ---
 
-### ✅ Fase 3 — Growth (parcialmente completa)
+### ✅ Fase 3 — Growth (COMPLETA)
 
 **Analytics**
-- [x] `/dashboard/analytics` — leaderboard, pipeline por etapa, funnel, revenue trend
-- [x] `GET /api/dashboard/analytics` — KPIs completos
-- [ ] ClickHouse para OLAP
-- [ ] Cohortes, CAC, LTV, ROAS
-- [ ] Report builder drag-and-drop
+- [x] `/dashboard/analytics` — leaderboard, pipeline por etapa, funnel, revenue trend, **CAC/LTV/MRR/ARR**, alertas de anomalías, origen de contactos (pie chart)
+- [x] `GET /api/dashboard/analytics` — KPIs completos con métricas financieras
+- [x] `GET /api/dashboard/anomalies` — alertas de deals sin actividad, contactos fríos, oportunidades sin explotar
+- [x] Reportes programados (`/settings/reports`) — envío por email con cron, 4 tipos de reporte, `GET/POST/DELETE /api/reports`, envío manual
+- [ ] ClickHouse para OLAP (requiere instancia externa)
+- [ ] Cohortes de clientes
 
 **AI avanzado**
 - [x] Copiloto en lenguaje natural (`/dashboard/copilot`) — Claude Haiku, contexto real del CRM, sugerencias
 - [x] `POST /api/copilot/ask` — NL query con contexto completo
-- [ ] Búsqueda semántica (pgvector + embeddings)
-- [ ] Scoring predictivo con ML
-- [ ] Análisis de sentimiento en conversaciones
+- [x] Análisis de sentimiento en conversaciones — Claude API, `POST /api/conversations/:id/analyze`, panel en sidebar
+- [x] Scoring predictivo mejorado — 5 dimensiones (perfil, actividad, tipo, deals, sentimiento), predicción hot/warm/cold
+- [ ] Búsqueda semántica (pgvector + embeddings — requiere extensión Postgres)
 
 **Marketing**
 - [x] Campañas de email bulk (`/dashboard/campaigns`) — segmentación, personalización {{nombre}}/{{empresa}}, preview
 - [x] `POST /api/campaigns/send` + `POST /api/campaigns/preview`
 - [x] Importación CSV de contactos — modal en /contacts, mapeo automático de columnas
 - [x] `POST /api/import/contacts` — hasta 1000 filas, deduplicación por email
-- [ ] A/B testing de emails
-- [ ] Formularios web embebibles
+- [x] Formularios web embebibles (`/dashboard/forms`) — builder visual, página pública `/form/[slug]`, mapeo a contactos, notificación por email
+- [x] Segmentos guardados — guardar/cargar filtros de contactos, `GET/POST/DELETE /api/segments`
 
 **Integraciones**
 - [x] Webhooks salientes (`/dashboard/settings/webhooks`) — eventos configurables, firma HMAC, test, historial
@@ -411,10 +412,11 @@ POST   /api/contacts/:id/email
 > **Migraciones pendientes:** Después de `npm install`, corré:
 > ```bash
 > cd packages/database
-> npm run db:migrate:dev -- --name add_notifications_webhooks
+> npm run db:migrate:dev -- --name fase3_completa
 > cd ../..
 > ```
-> Esto crea los modelos: `Notification`, `Webhook`, `WebhookDelivery`
+> Crea los modelos: `Notification`, `Webhook`, `WebhookDelivery`, `Form`, `FormSubmission`, `Segment`, `ScheduledReport`
+> También agrega campos UTM y `source` al modelo `Contact`.
 
 ## Stack tecnológico
 

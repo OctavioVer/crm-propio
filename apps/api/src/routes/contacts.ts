@@ -6,6 +6,7 @@ import { triggerWorkflows } from '../workers/workflow.worker'
 import { mailer } from '../lib/mailer'
 import { prisma } from '@crm/database'
 import { config } from '../config'
+import { dispatchWebhook } from '../lib/webhook-dispatch'
 
 const createSchema = z.object({
   type: z.enum(['PERSON', 'COMPANY']).optional(),
@@ -58,6 +59,7 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
     const body = createSchema.parse(request.body)
     const contact = await service.create(request.authUser.tenantId, request.authUser.id, body)
     triggerWorkflows(request.authUser.tenantId, 'contact_created', 'contact', contact.id).catch(() => {})
+    dispatchWebhook(request.authUser.tenantId, 'contact.created', { id: contact.id, firstName: contact.firstName, lastName: contact.lastName, email: contact.emails?.[0]?.email }).catch(() => {})
     return reply.status(201).send(contact)
   })
 
@@ -111,6 +113,54 @@ export const contactRoutes: FastifyPluginAsync = async (fastify) => {
       return reply.send(nba)
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Contacto no encontrado' })
+    }
+  })
+
+  // Bulk actions
+  fastify.post('/bulk', async (request, reply) => {
+    const body = z.object({
+      ids: z.array(z.string()).min(1).max(200),
+      action: z.enum(['delete', 'add_tag', 'remove_tag', 'set_stage', 'set_owner']),
+      value: z.string().optional(),
+    }).parse(request.body)
+
+    const tenantId = request.authUser.tenantId
+    const where = { id: { in: body.ids }, tenantId }
+
+    switch (body.action) {
+      case 'delete':
+        await prisma.contact.deleteMany({ where })
+        return reply.status(200).send({ affected: body.ids.length })
+
+      case 'add_tag': {
+        if (!body.value) return reply.status(400).send({ message: 'Tag requerido' })
+        const contacts = await prisma.contact.findMany({ where, select: { id: true, tags: true } })
+        await Promise.all(contacts.map(c =>
+          c.tags.includes(body.value!)
+            ? Promise.resolve()
+            : prisma.contact.update({ where: { id: c.id }, data: { tags: [...c.tags, body.value!] } })
+        ))
+        return { affected: contacts.length }
+      }
+
+      case 'remove_tag': {
+        if (!body.value) return reply.status(400).send({ message: 'Tag requerido' })
+        const contacts = await prisma.contact.findMany({ where, select: { id: true, tags: true } })
+        await Promise.all(contacts.map(c =>
+          prisma.contact.update({ where: { id: c.id }, data: { tags: c.tags.filter(t => t !== body.value) } })
+        ))
+        return { affected: contacts.length }
+      }
+
+      case 'set_stage':
+        if (!body.value) return reply.status(400).send({ message: 'Etapa requerida' })
+        await prisma.contact.updateMany({ where, data: { stage: body.value } })
+        return { affected: body.ids.length }
+
+      case 'set_owner':
+        if (!body.value) return reply.status(400).send({ message: 'Owner requerido' })
+        await prisma.contact.updateMany({ where, data: { ownerId: body.value } })
+        return { affected: body.ids.length }
     }
   })
 

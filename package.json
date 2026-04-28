@@ -12,7 +12,10 @@
     "db:generate": "turbo run db:generate",
     "db:migrate": "turbo run db:migrate",
     "db:seed": "turbo run db:seed",
-    "db:studio": "cd packages/database && npx prisma studio"
+    "db:studio": "cd packages/database && npx prisma studio",
+    "start:api": "npm run start:prod --workspace=@crm/api",
+    "start:web": "npm run start --workspace=@crm/web",
+    "deploy:migrate": "cd packages/database && npx prisma migrate deploy"
   },
   "devDependencies": {
     "turbo": "^2.3.0",

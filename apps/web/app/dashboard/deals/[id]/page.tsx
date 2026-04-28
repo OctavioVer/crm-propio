@@ -65,8 +65,37 @@ export default function DealDetailPage({ params }: { params: Promise<{ id: strin
               <span className="badge bg-gray-100 text-gray-600 border-gray-200">{deal.stage}</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <button className="btn-secondary px-3 py-1.5"><MoreVertical size={16} /></button>
+          <div className="flex items-center gap-2 ml-auto flex-wrap">
+            {deal.status === 'OPEN' && (
+              <>
+                <button
+                  onClick={async () => {
+                    if (!confirm('¿Marcar como GANADO?')) return
+                    try {
+                      const updated = await api.post<Deal>(`/api/deals/${id}/won`, {})
+                      setDeal(updated)
+                      toast.success('¡Deal ganado! 🎉')
+                    } catch { toast.error('Error') }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-sm font-medium rounded-lg transition-colors"
+                >
+                  <TrendingUp size={14} /> Ganado
+                </button>
+                <button
+                  onClick={async () => {
+                    const reason = prompt('Motivo de la pérdida (opcional):') ?? ''
+                    try {
+                      const updated = await api.post<Deal>(`/api/deals/${id}/lost`, { reason })
+                      setDeal(updated)
+                      toast.success('Deal marcado como perdido')
+                    } catch { toast.error('Error') }
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 text-sm font-medium rounded-lg transition-colors border border-red-200"
+                >
+                  Perdido
+                </button>
+              </>
+            )}
             <button onClick={() => setEditModalOpen(true)} className="btn-primary px-4 py-1.5 flex items-center gap-1.5">
               <Pencil size={14} /> Editar
             </button>

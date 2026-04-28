@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { DealService } from '../services/deal.service'
 import { triggerWorkflows } from '../workers/workflow.worker'
+import { dispatchWebhook } from '../lib/webhook-dispatch'
 
 const createSchema = z.object({
   pipelineId: z.string(),
@@ -61,8 +62,8 @@ export const dealRoutes: FastifyPluginAsync = async (fastify) => {
     const body = createSchema.parse(request.body)
     try {
       const deal = await service.create(request.authUser.tenantId, request.authUser.id, body)
-      // Fire workflow triggers async (don't block response)
       triggerWorkflows(request.authUser.tenantId, 'deal_created', 'deal', deal.id).catch(() => {})
+      dispatchWebhook(request.authUser.tenantId, 'deal.created', { id: deal.id, title: deal.title, stage: deal.stage }).catch(() => {})
       return reply.status(201).send(deal)
     } catch (err: any) {
       return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: err.message })
@@ -85,10 +86,38 @@ export const dealRoutes: FastifyPluginAsync = async (fastify) => {
     try {
       const deal = await service.moveStage(request.authUser.tenantId, id, stage)
       const triggerType = deal.status === 'WON' ? 'deal_won' : deal.status === 'LOST' ? 'deal_lost' : 'deal_stage_changed'
+      const webhookEvent = deal.status === 'WON' ? 'deal.won' : deal.status === 'LOST' ? 'deal.lost' : 'deal.stage_changed'
       triggerWorkflows(request.authUser.tenantId, triggerType, 'deal', id).catch(() => {})
+      dispatchWebhook(request.authUser.tenantId, webhookEvent, { id: deal.id, title: deal.title, stage: deal.stage, status: deal.status }).catch(() => {})
       return deal
     } catch {
       return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Deal no encontrado' })
+    }
+  })
+
+  // Quick close: mark won or lost
+  fastify.post('/:id/won', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    try {
+      const deal = await service.update(request.authUser.tenantId, id, { status: 'WON' as any })
+      triggerWorkflows(request.authUser.tenantId, 'deal_won', 'deal', id).catch(() => {})
+      dispatchWebhook(request.authUser.tenantId, 'deal.won', { id, title: (deal as any).title }).catch(() => {})
+      return deal
+    } catch {
+      return reply.status(404).send({ message: 'Deal no encontrado' })
+    }
+  })
+
+  fastify.post('/:id/lost', async (request, reply) => {
+    const { id } = request.params as { id: string }
+    const { reason } = (request.body as any) ?? {}
+    try {
+      const deal = await service.update(request.authUser.tenantId, id, { status: 'LOST' as any, notes: reason })
+      triggerWorkflows(request.authUser.tenantId, 'deal_lost', 'deal', id).catch(() => {})
+      dispatchWebhook(request.authUser.tenantId, 'deal.lost', { id, title: (deal as any).title, reason }).catch(() => {})
+      return deal
+    } catch {
+      return reply.status(404).send({ message: 'Deal no encontrado' })
     }
   })
 

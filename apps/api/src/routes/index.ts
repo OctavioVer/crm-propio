@@ -18,6 +18,7 @@ import { campaignRoutes } from './campaigns'
 import { formRoutes } from './forms'
 import { segmentRoutes } from './segments'
 import { reportRoutes } from './reports'
+import { searchRoutes } from './search'
 
 export const apiRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.register(authRoutes, { prefix: '/auth' })
@@ -39,4 +40,5 @@ export const apiRoutes: FastifyPluginAsync = async (fastify) => {
   fastify.register(formRoutes, { prefix: '/forms' })
   fastify.register(segmentRoutes, { prefix: '/segments' })
   fastify.register(reportRoutes, { prefix: '/reports' })
+  fastify.register(searchRoutes, { prefix: '/search' })
 }

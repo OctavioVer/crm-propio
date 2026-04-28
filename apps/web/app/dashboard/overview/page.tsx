@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Header } from '@/components/layout/header'
 import { api } from '@/lib/api'
 import { formatCurrency, formatDate } from '@/lib/utils'
-import { Users, Briefcase, TrendingUp, Trophy, Calendar, Clock, CheckCircle2, Plus } from 'lucide-react'
+import { Users, Briefcase, TrendingUp, Trophy, Calendar, Clock, CheckCircle2, Plus, AlertTriangle, MessageSquare, Zap, BarChart3 } from 'lucide-react'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts'
 import { CardSkeleton } from '@/components/ui/skeleton'
 import { useRouter } from 'next/navigation'
@@ -48,6 +48,7 @@ const ONBOARDING_STEPS = [
 export default function OverviewPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [stageData, setStageData] = useState<StageData[]>([])
+  const [anomalies, setAnomalies] = useState<Array<{ type: string; title: string; body: string }>>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
 
@@ -55,7 +56,9 @@ export default function OverviewPage() {
     Promise.all([
       api.get<DashboardStats>('/api/dashboard/stats'),
       api.get<any[]>('/api/pipelines'),
-    ]).then(async ([dashStats, pipelines]) => {
+      api.get<{ alerts: any[] }>('/api/dashboard/anomalies').catch(() => ({ alerts: [] })),
+    ]).then(async ([dashStats, pipelines, anomalyData]) => {
+      setAnomalies(anomalyData.alerts ?? [])
       setStats(dashStats)
       const def = pipelines.find((p: any) => p.isDefault) ?? pipelines[0]
       if (def) {
@@ -83,6 +86,34 @@ export default function OverviewPage() {
     <div>
       <Header title="Dashboard" />
       <div className="p-6 space-y-6">
+        {/* Quick actions */}
+        <div className="flex flex-wrap gap-2">
+          <button onClick={() => router.push('/dashboard/contacts')} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-brand-50 hover:border-brand-200 transition-colors">
+            <Users size={15} className="text-brand-500" /> Nuevo contacto
+          </button>
+          <button onClick={() => router.push('/dashboard/deals')} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-purple-50 hover:border-purple-200 transition-colors">
+            <Briefcase size={15} className="text-purple-500" /> Nuevo deal
+          </button>
+          <button onClick={() => router.push('/dashboard/conversations')} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-blue-50 hover:border-blue-200 transition-colors">
+            <MessageSquare size={15} className="text-blue-500" /> Ver conversaciones
+          </button>
+          <button onClick={() => router.push('/dashboard/automations')} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-yellow-50 hover:border-yellow-200 transition-colors">
+            <Zap size={15} className="text-yellow-500" /> Automatizaciones
+          </button>
+          <button onClick={() => router.push('/dashboard/analytics')} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-700 hover:bg-green-50 hover:border-green-200 transition-colors">
+            <BarChart3 size={15} className="text-green-500" /> Ver analítica
+          </button>
+        </div>
+
+        {/* Anomaly alerts */}
+        {anomalies.filter(a => a.type === 'warning').map((alert, i) => (
+          <div key={i} className="flex items-center gap-3 p-3 bg-yellow-50 border border-yellow-200 rounded-xl text-sm text-yellow-700 cursor-pointer" onClick={() => router.push('/dashboard/analytics')}>
+            <AlertTriangle size={15} className="flex-shrink-0" />
+            <span className="font-medium">{alert.title}</span>
+            {alert.body && <span className="text-yellow-600 text-xs ml-auto hidden md:block">{alert.body}</span>}
+          </div>
+        ))}
+
         {/* Onboarding Checklist */}
         {showOnboarding && (
           <div className="card p-5 border-brand-100 bg-brand-50/30">

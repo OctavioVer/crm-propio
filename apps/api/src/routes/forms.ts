@@ -26,84 +26,8 @@ const createFormSchema = z.object({
 })
 
 export const formRoutes: FastifyPluginAsync = async (fastify) => {
-  // ── Authenticated routes ──────────────────────────────────────────────────
-
-  fastify.addHook('preHandler', async (request, reply) => {
-    if (request.url.startsWith('/public/')) return
-    await fastify.authenticate(request, reply)
-  })
-
-  fastify.get('/', async (request) => {
-    return prisma.form.findMany({
-      where: { tenantId: request.authUser.tenantId },
-      include: { _count: { select: { submissions: true } } },
-      orderBy: { createdAt: 'desc' },
-    })
-  })
-
-  fastify.get('/:id', async (request, reply) => {
-    const { id } = request.params as { id: string }
-    const form = await prisma.form.findFirst({
-      where: { id, tenantId: request.authUser.tenantId },
-      include: { submissions: { orderBy: { createdAt: 'desc' }, take: 50 } },
-    })
-    if (!form) return reply.status(404).send({ message: 'Formulario no encontrado' })
-    return form
-  })
-
-  fastify.post('/', async (request, reply) => {
-    const body = createFormSchema.parse(request.body)
-    const slug = nanoid(10).toLowerCase()
-    const form = await prisma.form.create({
-      data: {
-        tenantId: request.authUser.tenantId,
-        name: body.name,
-        slug,
-        description: body.description,
-        fieldsJson: body.fields as any,
-        active: body.active,
-        notifyEmail: body.notifyEmail,
-        redirectUrl: body.redirectUrl,
-        submitMessage: body.submitMessage,
-      },
-    })
-    return reply.status(201).send(form)
-  })
-
-  fastify.patch('/:id', async (request, reply) => {
-    const { id } = request.params as { id: string }
-    const body = createFormSchema.partial().parse(request.body)
-    const form = await prisma.form.findFirst({ where: { id, tenantId: request.authUser.tenantId } })
-    if (!form) return reply.status(404).send({ message: 'Formulario no encontrado' })
-    return prisma.form.update({
-      where: { id },
-      data: {
-        ...(body.name && { name: body.name }),
-        ...(body.description !== undefined && { description: body.description }),
-        ...(body.fields && { fieldsJson: body.fields as any }),
-        ...(body.active !== undefined && { active: body.active }),
-        ...(body.notifyEmail !== undefined && { notifyEmail: body.notifyEmail }),
-        ...(body.redirectUrl !== undefined && { redirectUrl: body.redirectUrl }),
-        ...(body.submitMessage !== undefined && { submitMessage: body.submitMessage }),
-      },
-    })
-  })
-
-  fastify.delete('/:id', async (request, reply) => {
-    const { id } = request.params as { id: string }
-    const form = await prisma.form.findFirst({ where: { id, tenantId: request.authUser.tenantId } })
-    if (!form) return reply.status(404).send({ message: 'Formulario no encontrado' })
-    await prisma.form.delete({ where: { id } })
-    return reply.status(204).send()
-  })
-
-  // ── Public routes (no auth) ───────────────────────────────────────────────
-
-  // Get form definition (for rendering the embed)
-  fastify.get('/public/:slug', {
-    config: { skipAuth: true },
-    preHandler: [],
-  }, async (request, reply) => {
+  // ── Public routes (NO auth) — registered outside authenticated scope ──────
+  fastify.get('/public/:slug', async (request, reply) => {
     const { slug } = request.params as { slug: string }
     const form = await prisma.form.findFirst({
       where: { slug, active: true },
@@ -113,19 +37,13 @@ export const formRoutes: FastifyPluginAsync = async (fastify) => {
     return form
   })
 
-  // Submit form (public)
-  fastify.post('/public/:slug/submit', {
-    config: { skipAuth: true },
-    preHandler: [],
-  }, async (request, reply) => {
+  fastify.post('/public/:slug/submit', async (request, reply) => {
     const { slug } = request.params as { slug: string }
     const form = await prisma.form.findFirst({ where: { slug, active: true } })
     if (!form) return reply.status(404).send({ message: 'Formulario no encontrado' })
 
     const submissionData = request.body as Record<string, unknown>
     const fields = form.fieldsJson as Array<{ mapTo?: string; id: string }>
-
-    // Map submitted fields to contact fields
     const contactData: Record<string, string> = {}
     for (const field of fields) {
       if (field.mapTo && submissionData[field.id] != null) {
@@ -133,7 +51,6 @@ export const formRoutes: FastifyPluginAsync = async (fastify) => {
       }
     }
 
-    // Create or find contact
     let contactId: string | null = null
     if (contactData.email) {
       const existing = await prisma.contactEmail.findFirst({
@@ -171,21 +88,86 @@ export const formRoutes: FastifyPluginAsync = async (fastify) => {
       },
     })
 
-    // Notify if configured
     if (form.notifyEmail && contactData.email) {
       await mailer.sendMail({
         from: config.SMTP_FROM,
         to: form.notifyEmail,
         subject: `Nueva respuesta en "${form.name}"`,
-        html: `<p>Nuevo envío del formulario <strong>${form.name}</strong>:</p><ul>${Object.entries(submissionData).map(([k, v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('')
-          }</ul>`,
-      }).catch(() => { })
+        html: `<p>Nuevo envío del formulario <strong>${form.name}</strong>:</p><ul>${
+          Object.entries(submissionData).map(([k, v]) => `<li><strong>${k}:</strong> ${v}</li>`).join('')
+        }</ul>`,
+      }).catch(() => {})
     }
 
-    return {
-      ok: true,
-      message: (form.submitMessage as string) ?? '¡Gracias!',
-      redirectUrl: form.redirectUrl,
-    }
+    return { ok: true, message: (form.submitMessage as string) ?? '¡Gracias!', redirectUrl: form.redirectUrl }
+  })
+
+  // ── Authenticated routes — in child scope with auth hook ─────────────────
+  fastify.register(async (auth) => {
+    auth.addHook('preHandler', fastify.authenticate)
+
+    auth.get('/', async (request) => {
+      return prisma.form.findMany({
+        where: { tenantId: request.authUser.tenantId },
+        include: { _count: { select: { submissions: true } } },
+        orderBy: { createdAt: 'desc' },
+      })
+    })
+
+    auth.get('/:id', async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const form = await prisma.form.findFirst({
+        where: { id, tenantId: request.authUser.tenantId },
+        include: { submissions: { orderBy: { createdAt: 'desc' }, take: 50 } },
+      })
+      if (!form) return reply.status(404).send({ message: 'Formulario no encontrado' })
+      return form
+    })
+
+    auth.post('/', async (request, reply) => {
+      const body = createFormSchema.parse(request.body)
+      const slug = nanoid(10).toLowerCase()
+      const form = await prisma.form.create({
+        data: {
+          tenantId: request.authUser.tenantId,
+          name: body.name,
+          slug,
+          description: body.description,
+          fieldsJson: body.fields as any,
+          active: body.active,
+          notifyEmail: body.notifyEmail,
+          redirectUrl: body.redirectUrl,
+          submitMessage: body.submitMessage,
+        },
+      })
+      return reply.status(201).send(form)
+    })
+
+    auth.patch('/:id', async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const body = createFormSchema.partial().parse(request.body)
+      const form = await prisma.form.findFirst({ where: { id, tenantId: request.authUser.tenantId } })
+      if (!form) return reply.status(404).send({ message: 'Formulario no encontrado' })
+      return prisma.form.update({
+        where: { id },
+        data: {
+          ...(body.name && { name: body.name }),
+          ...(body.description !== undefined && { description: body.description }),
+          ...(body.fields && { fieldsJson: body.fields as any }),
+          ...(body.active !== undefined && { active: body.active }),
+          ...(body.notifyEmail !== undefined && { notifyEmail: body.notifyEmail }),
+          ...(body.redirectUrl !== undefined && { redirectUrl: body.redirectUrl }),
+          ...(body.submitMessage !== undefined && { submitMessage: body.submitMessage }),
+        },
+      })
+    })
+
+    auth.delete('/:id', async (request, reply) => {
+      const { id } = request.params as { id: string }
+      const form = await prisma.form.findFirst({ where: { id, tenantId: request.authUser.tenantId } })
+      if (!form) return reply.status(404).send({ message: 'Formulario no encontrado' })
+      await prisma.form.delete({ where: { id } })
+      return reply.status(204).send()
+    })
   })
 }

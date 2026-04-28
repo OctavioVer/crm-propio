@@ -14,6 +14,7 @@ import {
   LogOut,
   Sparkles,
   Mail,
+  FormInput,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { logout } from '@/lib/auth'
@@ -26,6 +27,7 @@ const navigation = [
   { name: 'Automatizaciones', href: '/dashboard/automations', icon: Zap },
   { name: 'Analítica', href: '/dashboard/analytics', icon: BarChart3 },
   { name: 'Campañas', href: '/dashboard/campaigns', icon: Mail },
+  { name: 'Formularios', href: '/dashboard/forms', icon: FormInput },
   { name: 'Copiloto AI', href: '/dashboard/copilot', icon: Sparkles },
 ]
 
